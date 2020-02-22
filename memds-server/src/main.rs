@@ -51,6 +51,8 @@ use std::env;
 use std::error::Error;
 use std::sync::{Arc, Mutex};
 
+use memds_proto;
+
 /// The in-memory database shared amongst all clients.
 ///
 /// This database will be shared via `Arc`, so to mutate the internal map we're
@@ -153,6 +155,9 @@ fn handle_request(line: &str, db: &Arc<Database>) -> Response {
         Ok(req) => req,
         Err(e) => return Response::Error { msg: e },
     };
+
+    let key = b"hello";
+    let _out_msg = memds_proto::req_get(key, false);
 
     let mut db = db.map.lock().unwrap();
     match request {

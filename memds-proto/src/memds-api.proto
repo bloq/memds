@@ -1,0 +1,55 @@
+
+syntax = "proto3";
+
+enum RequestType {
+  NOOP = 0;
+  GET = 1;
+  SET = 2;
+}
+
+message Request {
+  RequestType rtype = 1;
+
+  GetRequest get = 10;
+  SetRequest set = 11;
+}
+
+message RequestList {
+  repeated Request requests = 1;
+}
+
+message Response {
+  bool ok = 1;		// success?
+  int32 err_code = 2;	// error code, if !ok
+  string err_message = 3;	// error message, if !ok
+
+  RequestType rtype = 4;
+
+  GetResponse get = 10;
+  SetResponse set = 11;
+}
+
+message ResponseList {
+  repeated Response responses = 1;
+}
+
+message GetRequest {
+  bytes key = 1;	// key of item to retrieve
+  bool want_length = 2;	// (true) return value length, (false) return value
+}
+
+message GetResponse {
+  bytes value = 1;		// if !want_length, value requested
+  uint64 value_length = 2;	// if want_length, filled with value length
+}
+
+message SetRequest {
+  bytes key = 1;	// key of item to store
+  bytes value = 2;	// value of item to store
+  bool return_old = 3;	// if true & old item present, return old-value stored at key
+}
+
+message SetResponse {
+  bytes old_value = 1;	// if return_old, old-value stored at key
+}
+
