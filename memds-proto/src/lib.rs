@@ -1,15 +1,9 @@
+
 mod memds_api;
+mod error;
+mod codec;
 
-use protobuf::Message;
+pub use error::MemdsError;
+pub use memds_api::MemdsMessage;
+pub use codec::MemdsCodec;
 
-pub use memds_api::GetRequest;
-pub use memds_api::GetResponse;
-pub use memds_api::Response;
-
-pub fn req_get(key: &[u8], length_only: bool) -> Vec<u8> {
-    let mut out_msg = GetRequest::new();
-    out_msg.set_key(key.to_vec());
-    out_msg.want_length = length_only;
-
-    out_msg.write_to_bytes().unwrap()
-}
