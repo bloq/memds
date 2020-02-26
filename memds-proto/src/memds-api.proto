@@ -18,7 +18,7 @@ message RequestMsg {
   repeated Operation ops = 1;
 }
 
-message Result {
+message OpResult {
   bool ok = 1;		// success?
   int32 err_code = 2;	// error code, if !ok
   string err_message = 3;	// error message, if !ok
@@ -30,7 +30,11 @@ message Result {
 }
 
 message ResponseMsg {
-  repeated Result results = 1;
+  bool ok = 1;		// success?
+  int32 err_code = 2;	// error code, if !ok
+  string err_message = 3;	// error message, if !ok
+
+  repeated OpResult results = 4;
 }
 
 message StrGetOp {
