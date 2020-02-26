@@ -1,49 +1,8 @@
-//! A "tiny database" and accompanying protocol
-//!
-//! This example shows the usage of shared state amongst all connected clients,
-//! namely a database of key/value pairs. Each connected client can send a
-//! series of GET/SET commands to query the current value of a key or set the
-//! value of a key.
-//!
-//! This example has a simple protocol you can use to interact with the server.
-//! To run, first run this in one terminal window:
-//!
-//!     cargo run --example tinydb
-//!
-//! and next in another windows run:
-//!
-//!     cargo run --example connect 127.0.0.1:8080
-//!
-//! In the `connect` window you can type in commands where when you hit enter
-//! you'll get a response from the server for that command. An example session
-//! is:
-//!
-//!
-//!     $ cargo run --example connect 127.0.0.1:8080
-//!     GET foo
-//!     foo = bar
-//!     GET FOOBAR
-//!     error: no key FOOBAR
-//!     SET FOOBAR my awesome string
-//!     set FOOBAR = `my awesome string`, previous: None
-//!     SET foo tokio
-//!     set foo = `tokio`, previous: Some("bar")
-//!     GET foo
-//!     foo = tokio
-//!
-//! Namely you can issue two forms of commands:
-//!
-//! * `GET $key` - this will fetch the value of `$key` from the database and
-//!   return it. The server's database is initially populated with the key `foo`
-//!   set to the value `bar`
-//! * `SET $key $value` - this will set the value of `$key` to `$value`,
-//!   returning the previous value, if any.
-
 #![warn(rust_2018_idioms)]
 
 use tokio::net::TcpListener;
 use tokio::stream::StreamExt;
-use tokio_util::codec::{Framed, LinesCodec};
+use tokio_util::codec::Framed;
 
 use futures::SinkExt;
 use std::collections::HashMap;
@@ -51,34 +10,17 @@ use std::env;
 use std::error::Error;
 use std::sync::{Arc, Mutex};
 
+use memds_proto::{
+    MemdsCodec, MemdsMessage, MemdsMessage_MsgType, OpResult, OpType, ResponseMsg, StrGetRes,
+    StrSetRes,
+};
+
 /// The in-memory database shared amongst all clients.
 ///
 /// This database will be shared via `Arc`, so to mutate the internal map we're
 /// going to use a `Mutex` for interior mutability.
 struct Database {
-    map: Mutex<HashMap<String, String>>,
-}
-
-/// Possible requests our clients can send us
-enum Request {
-    Get { key: String },
-    Set { key: String, value: String },
-}
-
-/// Responses to the `Request` commands above
-enum Response {
-    Value {
-        key: String,
-        value: String,
-    },
-    Set {
-        key: String,
-        value: String,
-        previous: Option<String>,
-    },
-    Error {
-        msg: String,
-    },
+    map: Mutex<HashMap<Vec<u8>, Vec<u8>>>,
 }
 
 #[tokio::main]
@@ -98,7 +40,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     // each independently spawned client will have a reference to the in-memory
     // database.
     let mut initial_db = HashMap::new();
-    initial_db.insert("foo".to_string(), "bar".to_string());
+    initial_db.insert(b"foo".to_vec(), b"bar".to_vec());
     let db = Arc::new(Database {
         map: Mutex::new(initial_db),
     });
@@ -118,19 +60,17 @@ async fn main() -> Result<(), Box<dyn Error>> {
                     // Since our protocol is line-based we use `tokio_codecs`'s `LineCodec`
                     // to convert our stream of bytes, `socket`, into a `Stream` of lines
                     // as well as convert our line based responses into a stream of bytes.
-                    let mut lines = Framed::new(socket, LinesCodec::new());
+                    let mut msgs = Framed::new(socket, MemdsCodec::new());
 
                     // Here for every line we get back from the `Framed` decoder,
                     // we parse the request, and if it's valid we generate a response
                     // based on the values in the database.
-                    while let Some(result) = lines.next().await {
+                    while let Some(result) = msgs.next().await {
                         match result {
-                            Ok(line) => {
-                                let response = handle_request(&line, &db);
+                            Ok(msg) => {
+                                let response = handle_request(&msg, &db);
 
-                                let response = response.serialize();
-
-                                if let Err(e) = lines.send(response).await {
+                                if let Err(e) = msgs.send(response).await {
                                     println!("error on sending response; error = {:?}", e);
                                 }
                             }
@@ -140,7 +80,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
                         }
                     }
 
-                    // The connection will be closed at this point as `lines.next()` has returned `None`.
+                    // The connection will be closed at this point as `msgs.next()` has returned `None`.
                 });
             }
             Err(e) => println!("error accepting socket; error = {:?}", e),
@@ -148,77 +88,103 @@ async fn main() -> Result<(), Box<dyn Error>> {
     }
 }
 
-fn handle_request(line: &str, db: &Arc<Database>) -> Response {
-    let request = match Request::parse(&line) {
-        Ok(req) => req,
-        Err(e) => return Response::Error { msg: e },
-    };
+fn resp_err(code: i32, message: &str) -> MemdsMessage {
+    let mut resp = ResponseMsg::new();
+    resp.set_ok(false);
+    resp.set_err_code(code);
+    resp.set_err_message(message.to_string());
 
+    let mut out_msg = MemdsMessage::new();
+    out_msg.set_resp(resp);
+
+    out_msg
+}
+
+fn result_err(code: i32, message: &str) -> OpResult {
+    let mut res = OpResult::new();
+    res.set_ok(false);
+    res.set_err_code(code);
+    res.set_err_message(message.to_string());
+
+    res
+}
+
+fn handle_request(msg: &MemdsMessage, db: &Arc<Database>) -> MemdsMessage {
+    // pre-db-lock checks
+    if msg.mtype != MemdsMessage_MsgType::REQ || !msg.has_req() || msg.has_resp() {
+        return resp_err(-400, "REQ required");
+    }
+
+    let mut out_resp = ResponseMsg::new();
+
+    // lock db
     let mut db = db.map.lock().unwrap();
-    match request {
-        Request::Get { key } => match db.get(&key) {
-            Some(value) => Response::Value {
-                key,
-                value: value.clone(),
-            },
-            None => Response::Error {
-                msg: format!("no key {}", key),
-            },
-        },
-        Request::Set { key, value } => {
-            let previous = db.insert(key.clone(), value.clone());
-            Response::Set {
-                key,
-                value,
-                previous,
-            }
-        }
-    }
-}
 
-impl Request {
-    fn parse(input: &str) -> Result<Request, String> {
-        let mut parts = input.splitn(3, ' ');
-        match parts.next() {
-            Some("GET") => {
-                let key = parts.next().ok_or("GET must be followed by a key")?;
-                if parts.next().is_some() {
-                    return Err("GET's key must not be followed by anything".into());
+    // handle requests
+    let msg_req = msg.get_req();
+    let ops = msg_req.get_ops();
+    for op in ops.iter() {
+        match op.otype {
+            OpType::STR_GET => {
+                if !op.has_get() {
+                    out_resp.results.push(result_err(-400, "Invalid op"));
+                    continue;
                 }
-                Ok(Request::Get {
-                    key: key.to_string(),
-                })
-            }
-            Some("SET") => {
-                let key = match parts.next() {
-                    Some(key) => key,
-                    None => return Err("SET must be followed by a key".into()),
-                };
-                let value = match parts.next() {
-                    Some(value) => value,
-                    None => return Err("SET needs a value".into()),
-                };
-                Ok(Request::Set {
-                    key: key.to_string(),
-                    value: value.to_string(),
-                })
-            }
-            Some(cmd) => Err(format!("unknown command: {}", cmd)),
-            None => Err("empty input".into()),
-        }
-    }
-}
+                let get_req = op.get_get();
+                match db.get(get_req.get_key()) {
+                    Some(value) => {
+                        let mut get_res = StrGetRes::new();
+                        if get_req.want_length {
+                            get_res.set_value_length(value.len() as u64);
+                        } else {
+                            get_res.set_value(value.to_vec());
+                        }
 
-impl Response {
-    fn serialize(&self) -> String {
-        match *self {
-            Response::Value { ref key, ref value } => format!("{} = {}", key, value),
-            Response::Set {
-                ref key,
-                ref value,
-                ref previous,
-            } => format!("set {} = `{}`, previous: {:?}", key, value, previous),
-            Response::Error { ref msg } => format!("error: {}", msg),
+                        let mut op_res = OpResult::new();
+                        op_res.ok = true;
+                        op_res.otype = op.otype;
+                        op_res.set_get(get_res);
+                        out_resp.results.push(op_res);
+                    }
+                    None => {
+                        out_resp.results.push(result_err(-404, "Not Found"));
+                    }
+                }
+            }
+
+            OpType::STR_SET => {
+                if !op.has_set() {
+                    out_resp.results.push(result_err(-400, "Invalid op"));
+                    continue;
+                }
+
+                let set_req = op.get_set();
+                let previous = db.insert(set_req.get_key().to_vec(), set_req.get_value().to_vec());
+
+                let mut set_res = StrSetRes::new();
+                if set_req.return_old && previous.is_some() {
+                    set_res.set_old_value(previous.unwrap());
+                }
+
+                let mut op_res = OpResult::new();
+                op_res.ok = true;
+                op_res.otype = op.otype;
+                op_res.set_set(set_res);
+                out_resp.results.push(op_res);
+            }
+
+            _ => {
+                let mut res = OpResult::new();
+                res.ok = false;
+                res.err_code = -400;
+                res.err_message = String::from("Invalid op");
+                out_resp.results.push(res);
+            }
         }
     }
+
+    let mut out_msg = MemdsMessage::new();
+    out_msg.set_resp(out_resp);
+
+    out_msg
 }
