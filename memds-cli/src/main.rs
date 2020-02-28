@@ -11,15 +11,17 @@ fn main() {
         .version(VERSION)
         .about("Memds CLI")
         .subcommand(
-            SubCommand::with_name("str.get").about("String.Get").arg(
-                Arg::with_name("key")
-                    .help("Key of item to retrieve")
-                    .required(true),
-            ),
+            SubCommand::with_name("str.get")
+                .about("String.Get: Retrieve item")
+                .arg(
+                    Arg::with_name("key")
+                        .help("Key of item to retrieve")
+                        .required(true),
+                ),
         )
         .subcommand(
             SubCommand::with_name("str.set")
-                .about("String.Set")
+                .about("String.Set: Store item")
                 .arg(
                     Arg::with_name("key")
                         .help("Key of item to store")
