@@ -1,6 +1,7 @@
 [workspace]
 
 members = [
+    "memds-cli",
     "memds-proto",
     "memds-server",
 ]
