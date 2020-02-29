@@ -73,7 +73,24 @@ mod tests {
     }
 
     #[test]
-    fn basic_get_not_found() {
+    fn get_length() {
+        let mut db = get_test_db();
+
+        let mut req = StrGetOp::new();
+        req.set_key(b"foo".to_vec());
+        req.set_want_length(true);
+
+        let res = op::string::get(&mut db, &req);
+
+        assert_eq!(res.ok, true);
+        assert_eq!(res.otype, OpType::STR_GET);
+
+        let get_res = res.get_get();
+        assert_eq!(get_res.value_length, 3);
+    }
+
+    #[test]
+    fn get_not_found() {
         let mut db = get_test_db();
 
         let mut req = StrGetOp::new();
@@ -84,7 +101,7 @@ mod tests {
 
         assert_eq!(res.ok, false);
         assert_eq!(res.otype, OpType::NOOP);
-	assert_eq!(res.err_code, -404);
+        assert_eq!(res.err_code, -404);
     }
 
     #[test]
