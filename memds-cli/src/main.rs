@@ -11,7 +11,7 @@ fn main() {
         .version(VERSION)
         .about("Memds CLI")
         .subcommand(
-            SubCommand::with_name("str.get")
+            SubCommand::with_name("get")
                 .about("String.Get: Retrieve item")
                 .arg(
                     Arg::with_name("key")
@@ -20,7 +20,7 @@ fn main() {
                 ),
         )
         .subcommand(
-            SubCommand::with_name("str.set")
+            SubCommand::with_name("set")
                 .about("String.Set: Store item")
                 .arg(
                     Arg::with_name("key")
@@ -36,11 +36,11 @@ fn main() {
         .get_matches();
 
     match cli_matches.subcommand() {
-        ("str.get", Some(matches)) => {
+        ("get", Some(matches)) => {
             let key = matches.value_of("key").unwrap();
             println!("ACTION: str.get {}", key);
         }
-        ("str.set", Some(matches)) => {
+        ("set", Some(matches)) => {
             let key = matches.value_of("key").unwrap();
             let value = matches.value_of("value").unwrap();
             println!("ACTION: str.set {}={}", key, value);
