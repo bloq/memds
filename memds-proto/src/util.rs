@@ -1,7 +1,4 @@
-
-use crate::memds_api::{
-    MemdsMessage, ResponseMsg, OpResult,
-};
+use crate::memds_api::{MemdsMessage, OpResult, ResponseMsg};
 
 pub fn resp_err(code: i32, message: &str) -> MemdsMessage {
     let mut resp = ResponseMsg::new();
@@ -23,4 +20,3 @@ pub fn result_err(code: i32, message: &str) -> OpResult {
 
     res
 }
-
