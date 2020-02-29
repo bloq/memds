@@ -10,10 +10,10 @@ use std::env;
 use std::error::Error;
 use std::sync::{Arc, Mutex};
 
-use memds_proto::{
-    MemdsCodec, MemdsMessage, MemdsMessage_MsgType, OpResult, OpType, ResponseMsg, StrGetOp,
-    StrGetRes, StrSetOp, StrSetRes,
-};
+mod op;
+
+use memds_proto::util::{resp_err, result_err};
+use memds_proto::{MemdsCodec, MemdsMessage, MemdsMessage_MsgType, OpResult, OpType, ResponseMsg};
 
 /// The in-memory database shared amongst all clients.
 ///
@@ -88,64 +88,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
     }
 }
 
-fn resp_err(code: i32, message: &str) -> MemdsMessage {
-    let mut resp = ResponseMsg::new();
-    resp.set_ok(false);
-    resp.set_err_code(code);
-    resp.set_err_message(message.to_string());
-
-    let mut out_msg = MemdsMessage::new();
-    out_msg.set_resp(resp);
-
-    out_msg
-}
-
-fn result_err(code: i32, message: &str) -> OpResult {
-    let mut res = OpResult::new();
-    res.set_ok(false);
-    res.set_err_code(code);
-    res.set_err_message(message.to_string());
-
-    res
-}
-
-fn op_string_get(db: &mut HashMap<Vec<u8>, Vec<u8>>, req: &StrGetOp) -> OpResult {
-    match db.get(req.get_key()) {
-        Some(value) => {
-            let mut get_res = StrGetRes::new();
-            if req.want_length {
-                get_res.set_value_length(value.len() as u64);
-            } else {
-                get_res.set_value(value.to_vec());
-            }
-
-            let mut op_res = OpResult::new();
-            op_res.ok = true;
-            op_res.otype = OpType::STR_GET;
-            op_res.set_get(get_res);
-
-            op_res
-        }
-        None => result_err(-404, "Not Found"),
-    }
-}
-
-fn op_string_set(db: &mut HashMap<Vec<u8>, Vec<u8>>, req: &StrSetOp) -> OpResult {
-    let previous = db.insert(req.get_key().to_vec(), req.get_value().to_vec());
-
-    let mut set_res = StrSetRes::new();
-    if req.return_old && previous.is_some() {
-        set_res.set_old_value(previous.unwrap());
-    }
-
-    let mut op_res = OpResult::new();
-    op_res.ok = true;
-    op_res.otype = OpType::STR_SET;
-    op_res.set_set(set_res);
-
-    op_res
-}
-
 fn handle_request(msg: &MemdsMessage, db: &Arc<Database>) -> MemdsMessage {
     // pre-db-lock checks
     if msg.mtype != MemdsMessage_MsgType::REQ || !msg.has_req() || msg.has_resp() {
@@ -168,7 +110,7 @@ fn handle_request(msg: &MemdsMessage, db: &Arc<Database>) -> MemdsMessage {
                     continue;
                 }
                 let get_req = op.get_get();
-                out_resp.results.push(op_string_get(&mut db, get_req));
+                out_resp.results.push(op::string::get(&mut db, get_req));
             }
 
             OpType::STR_SET => {
@@ -178,7 +120,7 @@ fn handle_request(msg: &MemdsMessage, db: &Arc<Database>) -> MemdsMessage {
                 }
 
                 let set_req = op.get_set();
-                out_resp.results.push(op_string_set(&mut db, set_req));
+                out_resp.results.push(op::string::set(&mut db, set_req));
             }
 
             _ => {
