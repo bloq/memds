@@ -67,6 +67,8 @@ mod tests {
 
         assert_eq!(res.ok, true);
         assert_eq!(res.otype, OpType::STR_GET);
+        assert!(res.has_get());
+        assert!(!res.has_set());
 
         let get_res = res.get_get();
         assert_eq!(get_res.value, b"bar".to_vec());
@@ -84,6 +86,8 @@ mod tests {
 
         assert_eq!(res.ok, true);
         assert_eq!(res.otype, OpType::STR_GET);
+        assert!(res.has_get());
+        assert!(!res.has_set());
 
         let get_res = res.get_get();
         assert_eq!(get_res.value_length, 3);
@@ -102,6 +106,8 @@ mod tests {
         assert_eq!(res.ok, false);
         assert_eq!(res.otype, OpType::NOOP);
         assert_eq!(res.err_code, -404);
+        assert!(!res.has_get());
+        assert!(!res.has_set());
     }
 
     #[test]
@@ -117,6 +123,8 @@ mod tests {
 
         assert_eq!(res.ok, true);
         assert_eq!(res.otype, OpType::STR_SET);
+        assert!(!res.has_get());
+        assert!(res.has_set());
 
         let set_res = res.get_set();
         assert_eq!(set_res.old_value, b"".to_vec());
