@@ -73,6 +73,21 @@ mod tests {
     }
 
     #[test]
+    fn basic_get_not_found() {
+        let mut db = get_test_db();
+
+        let mut req = StrGetOp::new();
+        req.set_key(b"does not exist".to_vec());
+        req.set_want_length(false);
+
+        let res = op::string::get(&mut db, &req);
+
+        assert_eq!(res.ok, false);
+        assert_eq!(res.otype, OpType::NOOP);
+	assert_eq!(res.err_code, -404);
+    }
+
+    #[test]
     fn basic_set() {
         let mut db = get_test_db();
 
