@@ -129,4 +129,38 @@ mod tests {
         let set_res = res.get_set();
         assert_eq!(set_res.old_value, b"".to_vec());
     }
+
+    #[test]
+    fn set_with_old_value() {
+        let mut db = get_test_db();
+
+        let mut req = StrSetOp::new();
+        req.set_key(b"foo".to_vec());
+        req.set_value(b"door".to_vec());
+        req.set_return_old(true);
+
+        let res = op::string::set(&mut db, &req);
+
+        assert_eq!(res.ok, true);
+        assert_eq!(res.otype, OpType::STR_SET);
+        assert!(!res.has_get());
+        assert!(res.has_set());
+
+        let set_res = res.get_set();
+        assert_eq!(set_res.old_value, b"bar".to_vec()); // expect: old value
+
+        let mut req = StrSetOp::new();
+        req.set_key(b"foo".to_vec());
+        req.set_value(b"door".to_vec());
+
+        let res = op::string::set(&mut db, &req);
+
+        assert_eq!(res.ok, true);
+        assert_eq!(res.otype, OpType::STR_SET);
+        assert!(!res.has_get());
+        assert!(res.has_set());
+
+        let set_res = res.get_set();
+        assert_eq!(set_res.old_value, b"".to_vec()); // expect: blank
+    }
 }
