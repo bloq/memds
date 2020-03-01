@@ -9,6 +9,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+    - name: Install deps
+      run: sudo apt-get -y install protobuf-compiler
     - name: Build
       run: cargo build --verbose
     - name: Run tests
