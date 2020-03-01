@@ -9,6 +9,9 @@ use tokio_util::codec::{Decoder, Encoder};
 use crate::error::*;
 use crate::memds_api::MemdsMessage;
 
+#[cfg(test)]
+use crate::util;
+
 const HDR_SIZE: usize = 4; // [1 byte magic][3 byte size]
 const MAGIC: u32 = 0x4D; // ASCII 'M'
 const MAGIC_SHIFT: usize = 24;
@@ -40,7 +43,7 @@ impl MemdsCodec {
 
         let msg_size = {
             let mut src = Cursor::new(&mut *src);
-            let header = src.get_uint(4) as u32;
+            let header = src.get_uint(HDR_SIZE) as u32;
 
             let magic = header >> MAGIC_SHIFT;
             if magic != MAGIC {
@@ -49,6 +52,8 @@ impl MemdsCodec {
 
             (header & MSG_SIZE_MASK) as usize
         };
+
+        src.advance(HDR_SIZE);
 
         self.state = DecodeState::Data(msg_size);
         src.reserve(msg_size);
@@ -117,8 +122,20 @@ impl Encoder for MemdsCodec {
         let header = (msg_len & MSG_SIZE_MASK) | (MAGIC << 24);
 
         dst.reserve(HDR_SIZE + msg_len as usize);
-        dst.put_uint(header as u64, 4);
+        dst.put_uint(header as u64, HDR_SIZE);
         dst.extend_from_slice(&msg_bytes);
         Ok(())
     }
+}
+
+#[test]
+fn basic_codec() {
+    let mut codec = MemdsCodec::new();
+
+    let enc_msg = util::resp_err(-404, "not found");
+    let enc_msg_raw = &mut BytesMut::new();
+    codec.encode(enc_msg.clone(), enc_msg_raw).unwrap();
+
+    let dec_msg = codec.decode(enc_msg_raw).unwrap().unwrap();
+    assert_eq!(enc_msg, dec_msg);
 }
