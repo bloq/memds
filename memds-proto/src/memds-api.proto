@@ -1,42 +1,6 @@
 
 syntax = "proto3";
 
-enum OpType {
-  NOOP = 0;
-  STR_GET = 1;
-  STR_SET = 2;
-}
-
-message Operation {
-  OpType otype = 1;
-
-  StrGetOp get = 10;
-  StrSetOp set = 11;
-}
-
-message RequestMsg {
-  repeated Operation ops = 1;
-}
-
-message OpResult {
-  bool ok = 1;		// success?
-  int32 err_code = 2;	// error code, if !ok
-  string err_message = 3;	// error message, if !ok
-
-  OpType otype = 4;
-
-  StrGetRes get = 10;
-  StrSetRes set = 11;
-}
-
-message ResponseMsg {
-  bool ok = 1;		// success?
-  int32 err_code = 2;	// error code, if !ok
-  string err_message = 3;	// error message, if !ok
-
-  repeated OpResult results = 4;
-}
-
 message StrGetOp {
   bytes key = 1;	// key of item to retrieve
   bool want_length = 2;	// (true) return value length, (false) return value
@@ -55,6 +19,57 @@ message StrSetOp {
 
 message StrSetRes {
   bytes old_value = 1;	// if return_old, old-value stored at key
+}
+
+message NumOp {
+  bytes key = 1;	// key of item to increment
+  sint64 n = 2;		// (optional) amount of increment
+}
+
+message NumRes {
+  sint64 old_value = 1;	// value of key prior to operation
+}
+
+enum OpType {
+  NOOP = 0;
+  STR_GET = 1;
+  STR_SET = 2;
+  DECR = 3;
+  DECRBY = 4;
+  INCR = 5;
+  INCRBY = 6;
+}
+
+message Operation {
+  OpType otype = 1;
+
+  StrGetOp get = 10;
+  StrSetOp set = 11;
+  NumOp num = 12;
+}
+
+message RequestMsg {
+  repeated Operation ops = 1;
+}
+
+message OpResult {
+  bool ok = 1;		// success?
+  int32 err_code = 2;	// error code, if !ok
+  string err_message = 3;	// error message, if !ok
+
+  OpType otype = 4;
+
+  StrGetRes get = 10;
+  StrSetRes set = 11;
+  NumRes num = 12;
+}
+
+message ResponseMsg {
+  bool ok = 1;		// success?
+  int32 err_code = 2;	// error code, if !ok
+  string err_message = 3;	// error message, if !ok
+
+  repeated OpResult results = 4;
 }
 
 message MemdsMessage {

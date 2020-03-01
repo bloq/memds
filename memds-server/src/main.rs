@@ -123,6 +123,17 @@ fn handle_request(msg: &MemdsMessage, db: &Arc<Database>) -> MemdsMessage {
                 out_resp.results.push(op::string::set(&mut db, set_req));
             }
 
+            OpType::DECR | OpType::DECRBY | OpType::INCR | OpType::INCRBY => {
+                if !op.has_num() {
+                    out_resp.results.push(result_err(-400, "Invalid op"));
+                    continue;
+                }
+
+                let num_req = op.get_num();
+                let op_res = op::string::incrdecr(&mut db, op.otype, num_req);
+                out_resp.results.push(op_res);
+            }
+
             _ => {
                 let mut res = OpResult::new();
                 res.ok = false;

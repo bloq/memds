@@ -7,6 +7,6 @@ pub mod util;
 pub use codec::MemdsCodec;
 pub use error::MemdsError;
 pub use memds_api::{
-    MemdsMessage, MemdsMessage_MsgType, OpResult, OpType, ResponseMsg, StrGetOp, StrGetRes,
-    StrSetOp, StrSetRes,
+    MemdsMessage, MemdsMessage_MsgType, NumOp, NumRes, OpResult, OpType, ResponseMsg, StrGetOp,
+    StrGetRes, StrSetOp, StrSetRes,
 };
