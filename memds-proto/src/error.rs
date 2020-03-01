@@ -1,6 +1,7 @@
 #[derive(Debug)]
 pub enum MemdsError {
     InvalidFrame,
+    InvalidChecksum,
     ProtobufDecode,
     IO(std::io::Error),
 }
