@@ -19,6 +19,20 @@ fn main() -> io::Result<()> {
         .version(VERSION)
         .about("Memds CLI")
         .subcommand(
+            SubCommand::with_name("append")
+                .about("String.Append: Append to item")
+                .arg(
+                    Arg::with_name("key")
+                        .help("Key of item to store")
+                        .required(true),
+                )
+                .arg(
+                    Arg::with_name("value")
+                        .help("Value of item to append")
+                        .required(true),
+                ),
+        )
+        .subcommand(
             SubCommand::with_name("decr")
                 .about("String.Decr: Decrement numeric item by 1")
                 .arg(
@@ -110,6 +124,11 @@ fn main() -> io::Result<()> {
     let client = MemdsClient::new(channel);
 
     match cli_matches.subcommand() {
+        ("append", Some(matches)) => {
+            let key = matches.value_of("key").unwrap();
+            let value = matches.value_of("value").unwrap();
+            cmd::set(&client, key, value, true)
+        }
         ("decr", Some(matches)) => {
             let key = matches.value_of("key").unwrap();
             println!("ACTION: str.decr {}", key);
@@ -145,7 +164,7 @@ fn main() -> io::Result<()> {
         ("set", Some(matches)) => {
             let key = matches.value_of("key").unwrap();
             let value = matches.value_of("value").unwrap();
-            cmd::set(&client, key, value)
+            cmd::set(&client, key, value, false)
         }
         ("", None) => {
             println!("No subcommand specified.  Run with --help for help.");

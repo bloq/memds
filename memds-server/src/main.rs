@@ -50,17 +50,24 @@ impl Memds for MemdsService {
                     out_resp.results.push(op::string::get(&mut db, get_req));
                 }
 
-                OpType::STR_SET => {
+                OpType::STR_SET | OpType::STR_APPEND => {
                     if !op.has_set() {
                         out_resp.results.push(result_err(-400, "Invalid op"));
                         continue;
                     }
 
                     let set_req = op.get_set();
-                    out_resp.results.push(op::string::set(&mut db, set_req));
+                    let op_res = {
+                        if op.otype == OpType::STR_SET {
+                            op::string::set(&mut db, set_req)
+                        } else {
+                            op::string::append(&mut db, set_req)
+                        }
+                    };
+                    out_resp.results.push(op_res);
                 }
 
-                OpType::DECR | OpType::DECRBY | OpType::INCR | OpType::INCRBY => {
+                OpType::STR_DECR | OpType::STR_DECRBY | OpType::STR_INCR | OpType::STR_INCRBY => {
                     if !op.has_num() {
                         out_resp.results.push(result_err(-400, "Invalid op"));
                         continue;

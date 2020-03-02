@@ -45,10 +45,11 @@ enum OpType {
   NOOP = 0;
   STR_GET = 1;
   STR_SET = 2;
-  DECR = 3;
-  DECRBY = 4;
-  INCR = 5;
-  INCRBY = 6;
+  STR_DECR = 3;
+  STR_DECRBY = 4;
+  STR_INCR = 5;
+  STR_INCRBY = 6;
+  STR_APPEND = 7;
 }
 
 message Operation {
