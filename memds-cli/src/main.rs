@@ -27,6 +27,7 @@ fn main() -> io::Result<()> {
         .subcommand(string::args::incr())
         .subcommand(string::args::incrby())
         .subcommand(string::args::set())
+        .subcommand(string::args::strlen())
         .get_matches();
 
     let endpoint = format!("{}:{}", DEF_BIND_HOST, memds_proto::DEF_PORT);
@@ -72,6 +73,10 @@ fn main() -> io::Result<()> {
             let key = matches.value_of("key").unwrap();
             let value = matches.value_of("value").unwrap();
             string::set(&client, key, value, false, false)
+        }
+        ("strlen", Some(matches)) => {
+            let key = matches.value_of("key").unwrap();
+            string::strlen(&client, key)
         }
         ("", None) => {
             println!("No subcommand specified.  Run with --help for help.");
