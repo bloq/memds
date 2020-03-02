@@ -3,7 +3,7 @@
 
 ## String operations
 
- - [ ] APPEND
+ - [x] APPEND
  - [ ] BITCOUNT
  - [ ] BITFIELD
  - [ ] BITOP
@@ -22,6 +22,7 @@
  - [ ] MSETNX
  - [ ] PSETEX
  - [x] SET
+	- [ ] SET options, notably expiration
  - [ ] SETBIT
  - [ ] SETEX
  - [ ] SETNX
