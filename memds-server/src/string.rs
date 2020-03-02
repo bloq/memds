@@ -134,7 +134,7 @@ pub fn append(db: &mut HashMap<Vec<u8>, Vec<u8>>, req: &StrSetOp) -> OpResult {
 
 #[cfg(test)]
 mod tests {
-    use crate::op;
+    use crate::string;
     use memds_proto::memds_api::{NumOp, OpType, StrGetOp, StrSetOp};
     use std::collections::HashMap;
 
@@ -155,7 +155,7 @@ mod tests {
         req.set_key(b"foo".to_vec());
         req.set_want_length(false);
 
-        let res = op::string::get(&mut db, &req);
+        let res = string::get(&mut db, &req);
 
         assert_eq!(res.ok, true);
         assert_eq!(res.otype, OpType::STR_GET);
@@ -174,7 +174,7 @@ mod tests {
         req.set_key(b"foo".to_vec());
         req.set_want_length(true);
 
-        let res = op::string::get(&mut db, &req);
+        let res = string::get(&mut db, &req);
 
         assert_eq!(res.ok, true);
         assert_eq!(res.otype, OpType::STR_GET);
@@ -193,7 +193,7 @@ mod tests {
         req.set_key(b"does not exist".to_vec());
         req.set_want_length(false);
 
-        let res = op::string::get(&mut db, &req);
+        let res = string::get(&mut db, &req);
 
         assert_eq!(res.ok, false);
         assert_eq!(res.otype, OpType::NOOP);
@@ -211,7 +211,7 @@ mod tests {
         req.set_value(b"door".to_vec());
         req.set_return_old(true);
 
-        let res = op::string::set(&mut db, &req);
+        let res = string::set(&mut db, &req);
 
         assert_eq!(res.ok, true);
         assert_eq!(res.otype, OpType::STR_SET);
@@ -231,7 +231,7 @@ mod tests {
         req.set_value(b"door".to_vec());
         req.set_return_old(true);
 
-        let res = op::string::set(&mut db, &req);
+        let res = string::set(&mut db, &req);
 
         assert_eq!(res.ok, true);
         assert_eq!(res.otype, OpType::STR_SET);
@@ -245,7 +245,7 @@ mod tests {
         req.set_key(b"foo".to_vec());
         req.set_value(b"door".to_vec());
 
-        let res = op::string::set(&mut db, &req);
+        let res = string::set(&mut db, &req);
 
         assert_eq!(res.ok, true);
         assert_eq!(res.otype, OpType::STR_SET);
@@ -265,7 +265,7 @@ mod tests {
         req.n = 0;
 
         // INCR(item not yet in db) => 1; old-value==0
-        let res = op::string::incrdecr(&mut db, OpType::STR_INCR, &req);
+        let res = string::incrdecr(&mut db, OpType::STR_INCR, &req);
 
         assert_eq!(res.ok, true);
         assert_eq!(res.otype, OpType::STR_INCR);
@@ -275,7 +275,7 @@ mod tests {
         assert_eq!(num_res.old_value.to_string().as_bytes(), b"0");
 
         // DECR(num) => 0; old-value==1
-        let res = op::string::incrdecr(&mut db, OpType::STR_DECR, &req);
+        let res = string::incrdecr(&mut db, OpType::STR_DECR, &req);
 
         assert_eq!(res.ok, true);
         assert_eq!(res.otype, OpType::STR_DECR);
@@ -286,7 +286,7 @@ mod tests {
 
         // DECRBY(num,2) => -2; old-value==0
         req.n = 2;
-        let res = op::string::incrdecr(&mut db, OpType::STR_DECRBY, &req);
+        let res = string::incrdecr(&mut db, OpType::STR_DECRBY, &req);
 
         assert_eq!(res.ok, true);
         assert_eq!(res.otype, OpType::STR_DECRBY);
@@ -296,7 +296,7 @@ mod tests {
         assert_eq!(num_res.old_value.to_string().as_bytes(), b"0");
 
         // INCRBY(num,2) => 0; old-value==-2
-        let res = op::string::incrdecr(&mut db, OpType::STR_INCRBY, &req);
+        let res = string::incrdecr(&mut db, OpType::STR_INCRBY, &req);
 
         assert_eq!(res.ok, true);
         assert_eq!(res.otype, OpType::STR_INCRBY);
@@ -309,7 +309,7 @@ mod tests {
         let mut req = StrGetOp::new();
         req.set_key(b"num".to_vec());
 
-        let res = op::string::get(&mut db, &req);
+        let res = string::get(&mut db, &req);
         assert_eq!(res.ok, true);
         let get_res = res.get_get();
         assert_eq!(get_res.value, b"0".to_vec());
@@ -324,7 +324,7 @@ mod tests {
         req.set_value(b"door".to_vec());
         req.set_return_old(true);
 
-        let res = op::string::append(&mut db, &req);
+        let res = string::append(&mut db, &req);
 
         assert_eq!(res.ok, true);
         assert_eq!(res.otype, OpType::STR_APPEND);
@@ -339,7 +339,7 @@ mod tests {
         req.set_value(b"door".to_vec());
         req.set_return_old(true);
 
-        let res = op::string::append(&mut db, &req);
+        let res = string::append(&mut db, &req);
 
         assert_eq!(res.ok, true);
         assert_eq!(res.otype, OpType::STR_APPEND);
@@ -353,7 +353,7 @@ mod tests {
         let mut req = StrGetOp::new();
         req.set_key(b"app".to_vec());
 
-        let res = op::string::get(&mut db, &req);
+        let res = string::get(&mut db, &req);
         assert_eq!(res.ok, true);
         let get_res = res.get_get();
         assert_eq!(get_res.value, b"doordoor".to_vec());
