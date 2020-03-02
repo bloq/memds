@@ -8,7 +8,7 @@ use memds_proto::memds_api_grpc::MemdsClient;
 use std::io;
 use std::sync::Arc;
 
-mod cmd;
+mod string;
 
 const APPNAME: &'static str = "memds-cli";
 const VERSION: &'static str = env!("CARGO_PKG_VERSION");
@@ -19,14 +19,14 @@ fn main() -> io::Result<()> {
     let cli_matches = clap::App::new(APPNAME)
         .version(VERSION)
         .about("Memds CLI")
-        .subcommand(cmd::args::append())
-        .subcommand(cmd::args::decr())
-        .subcommand(cmd::args::decrby())
-        .subcommand(cmd::args::get())
-        .subcommand(cmd::args::getset())
-        .subcommand(cmd::args::incr())
-        .subcommand(cmd::args::incrby())
-        .subcommand(cmd::args::set())
+        .subcommand(string::args::append())
+        .subcommand(string::args::decr())
+        .subcommand(string::args::decrby())
+        .subcommand(string::args::get())
+        .subcommand(string::args::getset())
+        .subcommand(string::args::incr())
+        .subcommand(string::args::incrby())
+        .subcommand(string::args::set())
         .get_matches();
 
     let endpoint = format!("{}:{}", DEF_BIND_HOST, memds_proto::DEF_PORT);
@@ -39,39 +39,39 @@ fn main() -> io::Result<()> {
         ("append", Some(matches)) => {
             let key = matches.value_of("key").unwrap();
             let value = matches.value_of("value").unwrap();
-            cmd::set(&client, key, value, false, true)
+            string::set(&client, key, value, false, true)
         }
         ("decr", Some(matches)) => {
             let key = matches.value_of("key").unwrap();
-            cmd::incrdecr(&client, OpType::STR_DECR, key, 1)
+            string::incrdecr(&client, OpType::STR_DECR, key, 1)
         }
         ("decrby", Some(matches)) => {
             let key = matches.value_of("key").unwrap();
             let n = value_t!(matches, "n", i64).unwrap_or(1);
-            cmd::incrdecr(&client, OpType::STR_DECRBY, key, n)
+            string::incrdecr(&client, OpType::STR_DECRBY, key, n)
         }
         ("incr", Some(matches)) => {
             let key = matches.value_of("key").unwrap();
-            cmd::incrdecr(&client, OpType::STR_INCR, key, 1)
+            string::incrdecr(&client, OpType::STR_INCR, key, 1)
         }
         ("incrby", Some(matches)) => {
             let key = matches.value_of("key").unwrap();
             let n = value_t!(matches, "n", i64).unwrap_or(1);
-            cmd::incrdecr(&client, OpType::STR_INCRBY, key, n)
+            string::incrdecr(&client, OpType::STR_INCRBY, key, n)
         }
         ("get", Some(matches)) => {
             let key = matches.value_of("key").unwrap();
-            cmd::get(&client, key)
+            string::get(&client, key)
         }
         ("getset", Some(matches)) => {
             let key = matches.value_of("key").unwrap();
             let value = matches.value_of("value").unwrap();
-            cmd::set(&client, key, value, true, false)
+            string::set(&client, key, value, true, false)
         }
         ("set", Some(matches)) => {
             let key = matches.value_of("key").unwrap();
             let value = matches.value_of("value").unwrap();
-            cmd::set(&client, key, value, false, false)
+            string::set(&client, key, value, false, false)
         }
         ("", None) => {
             println!("No subcommand specified.  Run with --help for help.");
