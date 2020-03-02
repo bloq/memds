@@ -1,3 +1,4 @@
+extern crate clap;
 extern crate futures;
 extern crate grpcio;
 extern crate memds_proto;
@@ -10,6 +11,7 @@ use std::sync::Arc;
 use std::sync::Mutex;
 use std::{io, thread};
 
+use clap::value_t;
 use futures::sync::oneshot;
 use futures::Future;
 use grpcio::{Environment, RpcContext, ServerBuilder, UnarySink};
@@ -19,6 +21,10 @@ use memds_proto::memds_api_grpc::{self, Memds};
 use memds_proto::util::result_err;
 
 mod string;
+
+const APPNAME: &'static str = "memds-server";
+const VERSION: &'static str = env!("CARGO_PKG_VERSION");
+const DEF_BIND_ADDR: &'static str = "127.0.0.1";
 
 /// The in-memory database shared amongst all clients.
 ///
@@ -47,7 +53,8 @@ impl Memds for MemdsService {
                         continue;
                     }
                     let get_req = op.get_get();
-                    out_resp.results.push(string::get(&mut db, get_req));
+                    let op_res = string::get(&mut db, get_req);
+                    out_resp.results.push(op_res);
                 }
 
                 OpType::STR_SET | OpType::STR_APPEND => {
@@ -98,6 +105,32 @@ impl Memds for MemdsService {
 fn main() {
     let env = Arc::new(Environment::new(1));
 
+    // parse command line
+    let cli_matches = clap::App::new(APPNAME)
+        .version(VERSION)
+        .about("Memory Database Service")
+        .arg(
+            clap::Arg::with_name("bind-addr")
+                .long("bind-addr")
+                .value_name("IP-ADDRESS")
+                .help(&format!("socket bind address (default: {})", DEF_BIND_ADDR))
+                .takes_value(true),
+        )
+        .arg(
+            clap::Arg::with_name("bind-port")
+                .long("bind-port")
+                .value_name("PORT")
+                .help(&format!(
+                    "socket bind port (default: {})",
+                    memds_proto::DEF_PORT
+                ))
+                .takes_value(true),
+        )
+        .get_matches();
+
+    let bind_addr = cli_matches.value_of("bind-addr").unwrap_or(DEF_BIND_ADDR);
+    let bind_port = value_t!(cli_matches, "bind-port", u16).unwrap_or(memds_proto::DEF_PORT);
+
     let mut initial_db = HashMap::new();
     initial_db.insert(b"foo".to_vec(), b"bar".to_vec());
 
@@ -106,7 +139,7 @@ fn main() {
     });
     let mut server = ServerBuilder::new(env)
         .register_service(service)
-        .bind("127.0.0.1", memds_proto::DEF_PORT)
+        .bind(bind_addr, bind_port)
         .build()
         .unwrap();
     server.start();

@@ -129,6 +129,40 @@ pub fn incrdecr(client: &MemdsClient, otype: OpType, key: &str, n: i64) -> io::R
     }
 }
 
+pub fn strlen(client: &MemdsClient, key: &str) -> io::Result<()> {
+    let mut get_req = StrGetOp::new();
+    get_req.set_key(key.as_bytes().to_vec());
+    get_req.want_length = true;
+
+    let mut op = Operation::new();
+    op.otype = OpType::STR_GET;
+    op.set_get(get_req);
+
+    let mut req = RequestMsg::new();
+    req.ops.push(op);
+
+    let resp = rpc_exec(&client, &req)?;
+
+    if !resp.ok {
+        let msg = format!("Batch failure {}: {}", resp.err_code, resp.err_message);
+        return Err(Error::new(ErrorKind::Other, msg));
+    }
+
+    let results = resp.get_results();
+    assert!(results.len() == 1);
+
+    let result = &results[0];
+    if result.ok {
+        let get_res = results[0].get_get();
+        let value_length = get_res.value_length;
+        println!("{}", value_length);
+        Ok(())
+    } else {
+        let msg = format!("{}: {}", key, result.err_message);
+        Err(Error::new(ErrorKind::Other, msg))
+    }
+}
+
 pub mod args {
     use clap::{App, Arg, SubCommand};
 
@@ -233,6 +267,16 @@ pub mod args {
             .arg(
                 Arg::with_name("value")
                     .help("Value of item to store")
+                    .required(true),
+            )
+    }
+
+    pub fn strlen() -> App<'static, 'static> {
+        SubCommand::with_name("strlen")
+            .about("String.Strlen: Retrieve item length")
+            .arg(
+                Arg::with_name("key")
+                    .help("Key of item whose length shall be retrieved")
                     .required(true),
             )
     }
