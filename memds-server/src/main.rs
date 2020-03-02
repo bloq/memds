@@ -111,6 +111,7 @@ fn main() {
         .about("Memory Database Service")
         .arg(
             clap::Arg::with_name("bind-addr")
+                .short("a")
                 .long("bind-addr")
                 .value_name("IP-ADDRESS")
                 .help(&format!("socket bind address (default: {})", DEF_BIND_ADDR))
@@ -118,6 +119,7 @@ fn main() {
         )
         .arg(
             clap::Arg::with_name("bind-port")
+                .short("p")
                 .long("bind-port")
                 .value_name("PORT")
                 .help(&format!(
