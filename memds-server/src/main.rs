@@ -47,7 +47,8 @@ impl Memds for MemdsService {
                         continue;
                     }
                     let get_req = op.get_get();
-                    out_resp.results.push(string::get(&mut db, get_req));
+                    let op_res = string::get(&mut db, get_req);
+                    out_resp.results.push(op_res);
                 }
 
                 OpType::STR_SET | OpType::STR_APPEND => {
