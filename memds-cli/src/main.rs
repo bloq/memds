@@ -1,8 +1,9 @@
 extern crate clap;
 
-use clap::{Arg, SubCommand};
+use clap::{value_t, Arg, SubCommand};
 
 use grpcio::*;
+use memds_proto::memds_api::OpType;
 use memds_proto::memds_api_grpc::MemdsClient;
 use std::io;
 use std::sync::Arc;
@@ -51,7 +52,9 @@ fn main() -> io::Result<()> {
                 )
                 .arg(
                     Arg::with_name("n")
-                        .help("Numeric delta for operation")
+                        .help(
+                            "Numeric delta for operation (default: 1, if invalid number provided)",
+                        )
                         .required(true),
                 ),
         )
@@ -74,7 +77,9 @@ fn main() -> io::Result<()> {
                 )
                 .arg(
                     Arg::with_name("n")
-                        .help("Numeric delta for operation")
+                        .help(
+                            "Numeric delta for operation (default: 1, if invalid number provided)",
+                        )
                         .required(true),
                 ),
         )
@@ -127,29 +132,25 @@ fn main() -> io::Result<()> {
         ("append", Some(matches)) => {
             let key = matches.value_of("key").unwrap();
             let value = matches.value_of("value").unwrap();
-            cmd::set(&client, key, value, true)
+            cmd::set(&client, key, value, false, true)
         }
         ("decr", Some(matches)) => {
             let key = matches.value_of("key").unwrap();
-            println!("ACTION: str.decr {}", key);
-            Ok(())
+            cmd::incrdecr(&client, OpType::STR_DECR, key, 1)
         }
         ("decrby", Some(matches)) => {
             let key = matches.value_of("key").unwrap();
-            let n = matches.value_of("n").unwrap();
-            println!("ACTION: str.decrby {} {}", key, n);
-            Ok(())
+            let n = value_t!(matches, "n", i64).unwrap_or(1);
+            cmd::incrdecr(&client, OpType::STR_DECRBY, key, n)
         }
         ("incr", Some(matches)) => {
             let key = matches.value_of("key").unwrap();
-            println!("ACTION: str.incr {}", key);
-            Ok(())
+            cmd::incrdecr(&client, OpType::STR_INCR, key, 1)
         }
         ("incrby", Some(matches)) => {
             let key = matches.value_of("key").unwrap();
-            let n = matches.value_of("n").unwrap();
-            println!("ACTION: str.incrby {} {}", key, n);
-            Ok(())
+            let n = value_t!(matches, "n", i64).unwrap_or(1);
+            cmd::incrdecr(&client, OpType::STR_INCRBY, key, n)
         }
         ("get", Some(matches)) => {
             let key = matches.value_of("key").unwrap();
@@ -158,13 +159,12 @@ fn main() -> io::Result<()> {
         ("getset", Some(matches)) => {
             let key = matches.value_of("key").unwrap();
             let value = matches.value_of("value").unwrap();
-            println!("ACTION: str.getset {}={}", key, value);
-            Ok(())
+            cmd::set(&client, key, value, true, false)
         }
         ("set", Some(matches)) => {
             let key = matches.value_of("key").unwrap();
             let value = matches.value_of("value").unwrap();
-            cmd::set(&client, key, value, false)
+            cmd::set(&client, key, value, false, false)
         }
         ("", None) => {
             println!("No subcommand specified.  Run with --help for help.");

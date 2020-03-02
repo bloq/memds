@@ -48,10 +48,17 @@ pub fn get(client: &MemdsClient, key: &str) -> io::Result<()> {
     }
 }
 
-pub fn set(client: &MemdsClient, key: &str, value: &str, append: bool) -> io::Result<()> {
+pub fn set(
+    client: &MemdsClient,
+    key: &str,
+    value: &str,
+    return_old: bool,
+    append: bool,
+) -> io::Result<()> {
     let mut set_req = StrSetOp::new();
     set_req.set_key(key.as_bytes().to_vec());
     set_req.set_value(value.as_bytes().to_vec());
+    set_req.return_old = return_old;
 
     let mut op = Operation::new();
     op.otype = match append {
@@ -75,7 +82,46 @@ pub fn set(client: &MemdsClient, key: &str, value: &str, append: bool) -> io::Re
 
     let result = &results[0];
     if result.ok {
-        io::stdout().write_all(b"ok\n")?;
+        if return_old {
+            let set_res = results[0].get_set();
+            io::stdout().write_all(set_res.get_old_value())?;
+        } else {
+            io::stdout().write_all(b"ok\n")?;
+        }
+        Ok(())
+    } else {
+        let msg = format!("{}: {}", key, result.err_message);
+        Err(Error::new(ErrorKind::Other, msg))
+    }
+}
+
+pub fn incrdecr(client: &MemdsClient, otype: OpType, key: &str, n: i64) -> io::Result<()> {
+    let mut num_req = NumOp::new();
+    num_req.set_key(key.as_bytes().to_vec());
+    num_req.n = n;
+
+    let mut op = Operation::new();
+    op.otype = otype;
+    op.set_num(num_req);
+
+    let mut req = RequestMsg::new();
+    req.ops.push(op);
+
+    let resp = rpc_exec(&client, &req)?;
+
+    if !resp.ok {
+        let msg = format!("Batch failure {}: {}", resp.err_code, resp.err_message);
+        return Err(Error::new(ErrorKind::Other, msg));
+    }
+
+    let results = resp.get_results();
+    assert!(results.len() == 1);
+
+    let result = &results[0];
+    if result.ok {
+        let num_res = results[0].get_num();
+        let old_value = num_res.get_old_value();
+        println!("{}", old_value);
         Ok(())
     } else {
         let msg = format!("{}: {}", key, result.err_message);
