@@ -2,24 +2,16 @@ extern crate clap;
 
 use clap::{Arg, SubCommand};
 
-use futures::Future;
 use grpcio::*;
-use memds_proto::memds_api::*;
 use memds_proto::memds_api_grpc::MemdsClient;
-use std::io::{self, Error, ErrorKind, Write};
+use std::io;
 use std::sync::Arc;
+
+mod cmd;
 
 const APPNAME: &'static str = "memds-cli";
 const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 const DEF_BIND_HOST: &'static str = "127.0.0.1";
-
-fn rpc_exec(client: &MemdsClient, req: &RequestMsg) -> io::Result<ResponseMsg> {
-    let exec = client.exec_async(&req).unwrap();
-    match exec.wait() {
-        Err(e) => panic!("RPC.Exec failed: {:?}", e),
-        Ok(resp) => Ok(resp),
-    }
-}
 
 fn main() -> io::Result<()> {
     // parse command line
@@ -121,66 +113,44 @@ fn main() -> io::Result<()> {
         ("decr", Some(matches)) => {
             let key = matches.value_of("key").unwrap();
             println!("ACTION: str.decr {}", key);
+            Ok(())
         }
         ("decrby", Some(matches)) => {
             let key = matches.value_of("key").unwrap();
             let n = matches.value_of("n").unwrap();
             println!("ACTION: str.decrby {} {}", key, n);
+            Ok(())
         }
         ("incr", Some(matches)) => {
             let key = matches.value_of("key").unwrap();
             println!("ACTION: str.incr {}", key);
+            Ok(())
         }
         ("incrby", Some(matches)) => {
             let key = matches.value_of("key").unwrap();
             let n = matches.value_of("n").unwrap();
             println!("ACTION: str.incrby {} {}", key, n);
+            Ok(())
         }
         ("get", Some(matches)) => {
             let key = matches.value_of("key").unwrap();
-
-            let mut get_req = StrGetOp::new();
-            get_req.set_key(key.as_bytes().to_vec());
-
-            let mut op = Operation::new();
-            op.otype = OpType::STR_GET;
-            op.set_get(get_req);
-
-            let mut req = RequestMsg::new();
-            req.ops.push(op);
-
-            let resp = rpc_exec(&client, &req)?;
-
-            if !resp.ok {
-                let msg = format!("Batch failure {}: {}", resp.err_code, resp.err_message);
-                return Err(Error::new(ErrorKind::Other, msg));
-            }
-
-            let results = resp.get_results();
-            assert!(results.len() == 1);
-
-            let result = &results[0];
-            if result.ok {
-                let get_res = results[0].get_get();
-                let value = get_res.get_value();
-                io::stdout().write_all(value)?;
-            } else {
-                println!("get failed {}: {}", result.err_code, result.err_message);
-            }
+            cmd::get(&client, key)
         }
         ("getset", Some(matches)) => {
             let key = matches.value_of("key").unwrap();
             let value = matches.value_of("value").unwrap();
             println!("ACTION: str.getset {}={}", key, value);
+            Ok(())
         }
         ("set", Some(matches)) => {
             let key = matches.value_of("key").unwrap();
             let value = matches.value_of("value").unwrap();
-            println!("ACTION: str.set {}={}", key, value);
+            cmd::set(&client, key, value)
         }
-        ("", None) => println!("No subcommand specified.  Run with --help for help."),
+        ("", None) => {
+            println!("No subcommand specified.  Run with --help for help.");
+            Ok(())
+        }
         _ => unreachable!(),
     }
-
-    Ok(())
 }
