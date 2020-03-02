@@ -18,7 +18,7 @@ use memds_proto::memds_api::{OpResult, OpType, RequestMsg, ResponseMsg};
 use memds_proto::memds_api_grpc::{self, Memds};
 use memds_proto::util::result_err;
 
-mod op;
+mod string;
 
 /// The in-memory database shared amongst all clients.
 ///
@@ -47,7 +47,7 @@ impl Memds for MemdsService {
                         continue;
                     }
                     let get_req = op.get_get();
-                    out_resp.results.push(op::string::get(&mut db, get_req));
+                    out_resp.results.push(string::get(&mut db, get_req));
                 }
 
                 OpType::STR_SET | OpType::STR_APPEND => {
@@ -59,9 +59,9 @@ impl Memds for MemdsService {
                     let set_req = op.get_set();
                     let op_res = {
                         if op.otype == OpType::STR_SET {
-                            op::string::set(&mut db, set_req)
+                            string::set(&mut db, set_req)
                         } else {
-                            op::string::append(&mut db, set_req)
+                            string::append(&mut db, set_req)
                         }
                     };
                     out_resp.results.push(op_res);
@@ -74,7 +74,7 @@ impl Memds for MemdsService {
                     }
 
                     let num_req = op.get_num();
-                    let op_res = op::string::incrdecr(&mut db, op.otype, num_req);
+                    let op_res = string::incrdecr(&mut db, op.otype, num_req);
                     out_resp.results.push(op_res);
                 }
 
