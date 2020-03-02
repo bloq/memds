@@ -32,6 +32,7 @@ struct MemdsService {
 impl Memds for MemdsService {
     fn exec(&mut self, ctx: RpcContext, msg_req: RequestMsg, sink: UnarySink<ResponseMsg>) {
         let mut out_resp = ResponseMsg::new();
+        out_resp.ok = true;
 
         // lock db
         let mut db = self.map.lock().unwrap();
@@ -98,7 +99,7 @@ fn main() {
     });
     let mut server = ServerBuilder::new(env)
         .register_service(service)
-        .bind("127.0.0.1", 0)
+        .bind("127.0.0.1", memds_proto::DEF_PORT)
         .build()
         .unwrap();
     server.start();
