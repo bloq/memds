@@ -1,6 +1,17 @@
 
 syntax = "proto3";
 
+option java_multiple_files = true;
+option java_package = "com.bloq.memds";
+option java_outer_classname = "MemdsProto";
+option objc_class_prefix = "MDS";
+
+package memds;
+
+service Memds {
+  rpc Exec (RequestMsg) returns (ResponseMsg) {}
+}
+
 message StrGetOp {
   bytes key = 1;	// key of item to retrieve
   bool want_length = 2;	// (true) return value length, (false) return value
@@ -70,18 +81,5 @@ message ResponseMsg {
   string err_message = 3;	// error message, if !ok
 
   repeated OpResult results = 4;
-}
-
-message MemdsMessage {
-  enum MsgType {
-    NOMSG = 0;
-    REQ = 1;
-    RESP = 2;
-  }
-
-  MsgType mtype = 1;
-
-  RequestMsg req = 2;
-  ResponseMsg resp = 3;
 }
 

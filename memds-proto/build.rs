@@ -1,15 +1,8 @@
-extern crate protoc_rust;
-
-use protoc_rust::Customize;
+extern crate protoc_grpcio;
 
 fn main() {
-    protoc_rust::run(protoc_rust::Args {
-        out_dir: "src",
-        input: &["src/memds-api.proto"],
-        includes: &["src"],
-        customize: Customize {
-            ..Default::default()
-        },
-    })
-    .expect("protoc");
+    let proto_root = "src";
+    println!("cargo:rerun-if-changed={}", proto_root);
+    protoc_grpcio::compile_grpc_protos(&["src/memds-api.proto"], &[proto_root], &proto_root, None)
+        .expect("Failed to compile gRPC definitions!");
 }

@@ -1,8 +1,10 @@
 use std::collections::HashMap;
 use std::str;
 
+use memds_proto::memds_api::{
+    NumOp, NumRes, OpResult, OpType, StrGetOp, StrGetRes, StrSetOp, StrSetRes,
+};
 use memds_proto::util::result_err;
-use memds_proto::{NumOp, NumRes, OpResult, OpType, StrGetOp, StrGetRes, StrSetOp, StrSetRes};
 
 pub fn incrdecr(db: &mut HashMap<Vec<u8>, Vec<u8>>, otype: OpType, req: &NumOp) -> OpResult {
     // parameterize based on operation
@@ -105,7 +107,7 @@ pub fn set(db: &mut HashMap<Vec<u8>, Vec<u8>>, req: &StrSetOp) -> OpResult {
 #[cfg(test)]
 mod tests {
     use crate::op;
-    use memds_proto::{NumOp, OpType, StrGetOp, StrSetOp};
+    use memds_proto::memds_api::{NumOp, OpType, StrGetOp, StrSetOp};
     use std::collections::HashMap;
 
     fn get_test_db() -> HashMap<Vec<u8>, Vec<u8>> {
