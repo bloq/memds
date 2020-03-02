@@ -48,13 +48,16 @@ pub fn get(client: &MemdsClient, key: &str) -> io::Result<()> {
     }
 }
 
-pub fn set(client: &MemdsClient, key: &str, value: &str) -> io::Result<()> {
+pub fn set(client: &MemdsClient, key: &str, value: &str, append: bool) -> io::Result<()> {
     let mut set_req = StrSetOp::new();
     set_req.set_key(key.as_bytes().to_vec());
     set_req.set_value(value.as_bytes().to_vec());
 
     let mut op = Operation::new();
-    op.otype = OpType::STR_SET;
+    op.otype = match append {
+        false => OpType::STR_SET,
+        true => OpType::STR_APPEND,
+    };
     op.set_set(set_req);
 
     let mut req = RequestMsg::new();
