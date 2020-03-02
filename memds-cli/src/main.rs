@@ -1,6 +1,6 @@
 extern crate clap;
 
-use clap::{value_t, Arg, SubCommand};
+use clap::value_t;
 
 use grpcio::*;
 use memds_proto::memds_api::OpType;
@@ -19,107 +19,14 @@ fn main() -> io::Result<()> {
     let cli_matches = clap::App::new(APPNAME)
         .version(VERSION)
         .about("Memds CLI")
-        .subcommand(
-            SubCommand::with_name("append")
-                .about("String.Append: Append to item")
-                .arg(
-                    Arg::with_name("key")
-                        .help("Key of item to store")
-                        .required(true),
-                )
-                .arg(
-                    Arg::with_name("value")
-                        .help("Value of item to append")
-                        .required(true),
-                ),
-        )
-        .subcommand(
-            SubCommand::with_name("decr")
-                .about("String.Decr: Decrement numeric item by 1")
-                .arg(
-                    Arg::with_name("key")
-                        .help("Key of item to update")
-                        .required(true),
-                ),
-        )
-        .subcommand(
-            SubCommand::with_name("decrby")
-                .about("String.DecrBy: Decrement numeric item")
-                .arg(
-                    Arg::with_name("key")
-                        .help("Key of item to update")
-                        .required(true),
-                )
-                .arg(
-                    Arg::with_name("n")
-                        .help(
-                            "Numeric delta for operation (default: 1, if invalid number provided)",
-                        )
-                        .required(true),
-                ),
-        )
-        .subcommand(
-            SubCommand::with_name("incr")
-                .about("String.IncrBy: Increment numeric item by 1")
-                .arg(
-                    Arg::with_name("key")
-                        .help("Key of item to update")
-                        .required(true),
-                ),
-        )
-        .subcommand(
-            SubCommand::with_name("incrby")
-                .about("String.Incr: Increment numeric item")
-                .arg(
-                    Arg::with_name("key")
-                        .help("Key of item to update")
-                        .required(true),
-                )
-                .arg(
-                    Arg::with_name("n")
-                        .help(
-                            "Numeric delta for operation (default: 1, if invalid number provided)",
-                        )
-                        .required(true),
-                ),
-        )
-        .subcommand(
-            SubCommand::with_name("get")
-                .about("String.Get: Retrieve item")
-                .arg(
-                    Arg::with_name("key")
-                        .help("Key of item to retrieve")
-                        .required(true),
-                ),
-        )
-        .subcommand(
-            SubCommand::with_name("getset")
-                .about("String.GetSet: Store item, return old value")
-                .arg(
-                    Arg::with_name("key")
-                        .help("Key of item to retrieve+store")
-                        .required(true),
-                )
-                .arg(
-                    Arg::with_name("value")
-                        .help("Value of item to store")
-                        .required(true),
-                ),
-        )
-        .subcommand(
-            SubCommand::with_name("set")
-                .about("String.Set: Store item")
-                .arg(
-                    Arg::with_name("key")
-                        .help("Key of item to store")
-                        .required(true),
-                )
-                .arg(
-                    Arg::with_name("value")
-                        .help("Value of item to store")
-                        .required(true),
-                ),
-        )
+        .subcommand(cmd::args::append())
+        .subcommand(cmd::args::decr())
+        .subcommand(cmd::args::decrby())
+        .subcommand(cmd::args::get())
+        .subcommand(cmd::args::getset())
+        .subcommand(cmd::args::incr())
+        .subcommand(cmd::args::incrby())
+        .subcommand(cmd::args::set())
         .get_matches();
 
     let endpoint = format!("{}:{}", DEF_BIND_HOST, memds_proto::DEF_PORT);

@@ -128,3 +128,112 @@ pub fn incrdecr(client: &MemdsClient, otype: OpType, key: &str, n: i64) -> io::R
         Err(Error::new(ErrorKind::Other, msg))
     }
 }
+
+pub mod args {
+    use clap::{App, Arg, SubCommand};
+
+    pub fn append() -> App<'static, 'static> {
+        SubCommand::with_name("append")
+            .about("String.Append: Append to item")
+            .arg(
+                Arg::with_name("key")
+                    .help("Key of item to store")
+                    .required(true),
+            )
+            .arg(
+                Arg::with_name("value")
+                    .help("Value of item to append")
+                    .required(true),
+            )
+    }
+
+    pub fn decr() -> App<'static, 'static> {
+        SubCommand::with_name("decr")
+            .about("String.Decr: Decrement numeric item by 1")
+            .arg(
+                Arg::with_name("key")
+                    .help("Key of item to update")
+                    .required(true),
+            )
+    }
+
+    pub fn decrby() -> App<'static, 'static> {
+        SubCommand::with_name("decrby")
+            .about("String.DecrBy: Decrement numeric item")
+            .arg(
+                Arg::with_name("key")
+                    .help("Key of item to update")
+                    .required(true),
+            )
+            .arg(
+                Arg::with_name("n")
+                    .help("Numeric delta for operation (default: 1, if invalid number provided)")
+                    .required(true),
+            )
+    }
+
+    pub fn get() -> App<'static, 'static> {
+        SubCommand::with_name("get")
+            .about("String.Get: Retrieve item")
+            .arg(
+                Arg::with_name("key")
+                    .help("Key of item to retrieve")
+                    .required(true),
+            )
+    }
+
+    pub fn getset() -> App<'static, 'static> {
+        SubCommand::with_name("getset")
+            .about("String.GetSet: Store item, return old value")
+            .arg(
+                Arg::with_name("key")
+                    .help("Key of item to retrieve+store")
+                    .required(true),
+            )
+            .arg(
+                Arg::with_name("value")
+                    .help("Value of item to store")
+                    .required(true),
+            )
+    }
+
+    pub fn incr() -> App<'static, 'static> {
+        SubCommand::with_name("incr")
+            .about("String.Incr: Increment numeric item by 1")
+            .arg(
+                Arg::with_name("key")
+                    .help("Key of item to update")
+                    .required(true),
+            )
+    }
+
+    pub fn incrby() -> App<'static, 'static> {
+        SubCommand::with_name("incrby")
+            .about("String.IncrBy: Increment numeric item")
+            .arg(
+                Arg::with_name("key")
+                    .help("Key of item to update")
+                    .required(true),
+            )
+            .arg(
+                Arg::with_name("n")
+                    .help("Numeric delta for operation (default: 1, if invalid number provided)")
+                    .required(true),
+            )
+    }
+
+    pub fn set() -> App<'static, 'static> {
+        SubCommand::with_name("set")
+            .about("String.Set: Store item")
+            .arg(
+                Arg::with_name("key")
+                    .help("Key of item to store")
+                    .required(true),
+            )
+            .arg(
+                Arg::with_name("value")
+                    .help("Value of item to store")
+                    .required(true),
+            )
+    }
+}
