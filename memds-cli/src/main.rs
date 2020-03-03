@@ -9,6 +9,7 @@ use std::io;
 use std::sync::Arc;
 
 mod string;
+mod util;
 
 const APPNAME: &'static str = "memds-cli";
 const VERSION: &'static str = env!("CARGO_PKG_VERSION");
