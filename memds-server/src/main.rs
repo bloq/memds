@@ -19,6 +19,7 @@ use grpcio::{Environment, RpcContext, ServerBuilder, UnarySink};
 use memds_proto::memds_api::{OpResult, OpType, RequestMsg, ResponseMsg};
 use memds_proto::memds_api_grpc::{self, Memds};
 use memds_proto::util::result_err;
+use memds_proto::Atom;
 
 mod string;
 
@@ -30,9 +31,10 @@ const DEF_BIND_ADDR: &'static str = "127.0.0.1";
 ///
 /// This database will be shared via `Arc`, so to mutate the internal map we're
 /// going to use a `Mutex` for interior mutability.
+
 #[derive(Clone)]
 struct MemdsService {
-    map: Arc<Mutex<HashMap<Vec<u8>, Vec<u8>>>>,
+    map: Arc<Mutex<HashMap<Vec<u8>, Atom>>>,
 }
 
 impl Memds for MemdsService {
@@ -111,6 +113,7 @@ fn main() {
         .about("Memory Database Service")
         .arg(
             clap::Arg::with_name("bind-addr")
+                .short("a")
                 .long("bind-addr")
                 .value_name("IP-ADDRESS")
                 .help(&format!("socket bind address (default: {})", DEF_BIND_ADDR))
@@ -118,6 +121,7 @@ fn main() {
         )
         .arg(
             clap::Arg::with_name("bind-port")
+                .short("p")
                 .long("bind-port")
                 .value_name("PORT")
                 .help(&format!(
@@ -132,7 +136,7 @@ fn main() {
     let bind_port = value_t!(cli_matches, "bind-port", u16).unwrap_or(memds_proto::DEF_PORT);
 
     let mut initial_db = HashMap::new();
-    initial_db.insert(b"foo".to_vec(), b"bar".to_vec());
+    initial_db.insert(b"foo".to_vec(), Atom::String(b"bar".to_vec()));
 
     let service = memds_api_grpc::create_memds(MemdsService {
         map: Arc::new(Mutex::new(initial_db)),

@@ -5,8 +5,9 @@ use memds_proto::memds_api::{
     NumOp, NumRes, OpResult, OpType, StrGetOp, StrGetRes, StrSetOp, StrSetRes,
 };
 use memds_proto::util::result_err;
+use memds_proto::Atom;
 
-pub fn incrdecr(db: &mut HashMap<Vec<u8>, Vec<u8>>, otype: OpType, req: &NumOp) -> OpResult {
+pub fn incrdecr(db: &mut HashMap<Vec<u8>, Atom>, otype: OpType, req: &NumOp) -> OpResult {
     // parameterize based on operation
     let (has_n, is_incr) = match otype {
         OpType::STR_DECR => (false, false),
@@ -19,13 +20,20 @@ pub fn incrdecr(db: &mut HashMap<Vec<u8>, Vec<u8>>, otype: OpType, req: &NumOp) 
     // get old value from db, or init
     let old_val: i64 = match db.get(req.get_key()) {
         None => 0,
-        Some(val) => {
+        Some(atom) => {
             let s = {
-                let s_res = str::from_utf8(val);
-                if s_res.is_err() {
-                    return result_err(-400, "value not a string");
+                match atom {
+                    Atom::String(val) => {
+                        let s_res = str::from_utf8(val);
+                        if s_res.is_err() {
+                            return result_err(-400, "value not a string");
+                        }
+                        s_res.unwrap()
+                    }
+                    _ => {
+                        return result_err(-400, "value not a string");
+                    }
                 }
-                s_res.unwrap()
             };
 
             let sv_res = s.parse::<i64>();
@@ -52,7 +60,7 @@ pub fn incrdecr(db: &mut HashMap<Vec<u8>, Vec<u8>>, otype: OpType, req: &NumOp) 
     // store value in database as string
     db.insert(
         req.get_key().to_vec(),
-        new_val.to_string().as_bytes().to_vec(),
+        Atom::String(new_val.to_string().as_bytes().to_vec()),
     );
 
     // return success(old value)
@@ -67,33 +75,43 @@ pub fn incrdecr(db: &mut HashMap<Vec<u8>, Vec<u8>>, otype: OpType, req: &NumOp) 
     op_res
 }
 
-pub fn get(db: &mut HashMap<Vec<u8>, Vec<u8>>, req: &StrGetOp) -> OpResult {
+pub fn get(db: &mut HashMap<Vec<u8>, Atom>, req: &StrGetOp) -> OpResult {
     match db.get(req.get_key()) {
-        Some(value) => {
-            let mut get_res = StrGetRes::new();
-            if req.want_length {
-                get_res.set_value_length(value.len() as u64);
-            } else {
-                get_res.set_value(value.to_vec());
+        Some(atom) => match atom {
+            Atom::String(value) => {
+                let mut get_res = StrGetRes::new();
+                if req.want_length {
+                    get_res.set_value_length(value.len() as u64);
+                } else {
+                    get_res.set_value(value.to_vec());
+                }
+
+                let mut op_res = OpResult::new();
+                op_res.ok = true;
+                op_res.otype = OpType::STR_GET;
+                op_res.set_get(get_res);
+
+                op_res
             }
-
-            let mut op_res = OpResult::new();
-            op_res.ok = true;
-            op_res.otype = OpType::STR_GET;
-            op_res.set_get(get_res);
-
-            op_res
-        }
+            _ => result_err(-400, "not a string"),
+        },
         None => result_err(-404, "Not Found"),
     }
 }
 
-pub fn set(db: &mut HashMap<Vec<u8>, Vec<u8>>, req: &StrSetOp) -> OpResult {
-    let previous = db.insert(req.get_key().to_vec(), req.get_value().to_vec());
+pub fn set(db: &mut HashMap<Vec<u8>, Atom>, req: &StrSetOp) -> OpResult {
+    let previous = db.insert(
+        req.get_key().to_vec(),
+        Atom::String(req.get_value().to_vec()),
+    );
 
     let mut set_res = StrSetRes::new();
     if req.return_old && previous.is_some() {
-        set_res.set_old_value(previous.unwrap());
+        let prev_atom = previous.unwrap();
+        match prev_atom {
+            Atom::String(s) => set_res.set_old_value(s),
+            _ => {}
+        }
     }
 
     let mut op_res = OpResult::new();
@@ -104,14 +122,18 @@ pub fn set(db: &mut HashMap<Vec<u8>, Vec<u8>>, req: &StrSetOp) -> OpResult {
     op_res
 }
 
-pub fn append(db: &mut HashMap<Vec<u8>, Vec<u8>>, req: &StrSetOp) -> OpResult {
+pub fn append(db: &mut HashMap<Vec<u8>, Atom>, req: &StrSetOp) -> OpResult {
     // get old value, or use "" if none
-    let mut value: Vec<u8>;
     let res = db.get(req.get_key());
-    match res {
-        Some(s) => value = s.to_vec(),
-        None => value = Vec::new(),
-    }
+    let mut value: Vec<u8> = match res {
+        Some(atom) => match atom {
+            Atom::String(s) => s.to_vec(),
+            _ => {
+                return result_err(-400, "not a string");
+            }
+        },
+        None => Vec::new(),
+    };
 
     // begin success result
     let mut set_res = StrSetRes::new();
@@ -121,7 +143,7 @@ pub fn append(db: &mut HashMap<Vec<u8>, Vec<u8>>, req: &StrSetOp) -> OpResult {
 
     // append to value
     value.extend_from_slice(req.get_value());
-    db.insert(req.get_key().to_vec(), value);
+    db.insert(req.get_key().to_vec(), Atom::String(value));
 
     // return success
     let mut op_res = OpResult::new();
@@ -136,13 +158,14 @@ pub fn append(db: &mut HashMap<Vec<u8>, Vec<u8>>, req: &StrSetOp) -> OpResult {
 mod tests {
     use crate::string;
     use memds_proto::memds_api::{NumOp, OpType, StrGetOp, StrSetOp};
+    use memds_proto::Atom;
     use std::collections::HashMap;
 
-    fn get_test_db() -> HashMap<Vec<u8>, Vec<u8>> {
-        let mut db: HashMap<Vec<u8>, Vec<u8>> = HashMap::new();
-        db.insert(b"foo".to_vec(), b"bar".to_vec());
-        db.insert(b"name".to_vec(), b"Jane Doe".to_vec());
-        db.insert(b"age".to_vec(), b"25".to_vec());
+    fn get_test_db() -> HashMap<Vec<u8>, Atom> {
+        let mut db: HashMap<Vec<u8>, Atom> = HashMap::new();
+        db.insert(b"foo".to_vec(), Atom::String(b"bar".to_vec()));
+        db.insert(b"name".to_vec(), Atom::String(b"Jane Doe".to_vec()));
+        db.insert(b"age".to_vec(), Atom::String(b"25".to_vec()));
 
         db
     }
