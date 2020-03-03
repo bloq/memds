@@ -32,7 +32,12 @@ fn main() -> io::Result<()> {
         .subcommand(string::args::strlen())
         .subcommand(list::args::lindex())
         .subcommand(list::args::llen())
+        .subcommand(list::args::lpop())
+        .subcommand(list::args::lpush())
+        .subcommand(list::args::lpushx())
+        .subcommand(list::args::rpop())
         .subcommand(list::args::rpush())
+        .subcommand(list::args::rpushx())
         .get_matches();
 
     let endpoint = format!("{}:{}", DEF_BIND_HOST, memds_proto::DEF_PORT);
@@ -83,10 +88,33 @@ fn main() -> io::Result<()> {
             let key = matches.value_of("key").unwrap();
             list::llen(&client, key)
         }
+        ("lpop", Some(matches)) => {
+            let key = matches.value_of("key").unwrap();
+            list::pop(&client, key, true)
+        }
+        ("lpush", Some(matches)) => {
+            let key = matches.value_of("key").unwrap();
+            let elems: Vec<_> = matches.values_of("element").unwrap().collect();
+            list::push(&client, key, &elems, true, false)
+        }
+        ("lpushx", Some(matches)) => {
+            let key = matches.value_of("key").unwrap();
+            let elems: Vec<_> = matches.values_of("element").unwrap().collect();
+            list::push(&client, key, &elems, true, true)
+        }
+        ("rpop", Some(matches)) => {
+            let key = matches.value_of("key").unwrap();
+            list::pop(&client, key, false)
+        }
         ("rpush", Some(matches)) => {
             let key = matches.value_of("key").unwrap();
             let elems: Vec<_> = matches.values_of("element").unwrap().collect();
-            list::push(&client, key, &elems, false)
+            list::push(&client, key, &elems, false, false)
+        }
+        ("rpushx", Some(matches)) => {
+            let key = matches.value_of("key").unwrap();
+            let elems: Vec<_> = matches.values_of("element").unwrap().collect();
+            list::push(&client, key, &elems, false, true)
         }
         ("set", Some(matches)) => {
             let key = matches.value_of("key").unwrap();
