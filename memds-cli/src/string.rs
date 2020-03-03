@@ -1,4 +1,3 @@
-
 use std::io::{self, Error, ErrorKind, Write};
 
 use memds_proto::memds_api::*;

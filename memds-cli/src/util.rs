@@ -1,4 +1,3 @@
-
 use futures::Future;
 use std::io::{self, Error, ErrorKind};
 
@@ -15,4 +14,3 @@ pub fn rpc_exec(client: &MemdsClient, req: &RequestMsg) -> io::Result<ResponseMs
         Ok(resp) => Ok(resp),
     }
 }
-

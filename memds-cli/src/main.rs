@@ -8,6 +8,7 @@ use memds_proto::memds_api_grpc::MemdsClient;
 use std::io;
 use std::sync::Arc;
 
+mod list;
 mod string;
 mod util;
 
@@ -29,6 +30,9 @@ fn main() -> io::Result<()> {
         .subcommand(string::args::incrby())
         .subcommand(string::args::set())
         .subcommand(string::args::strlen())
+        .subcommand(list::args::lindex())
+        .subcommand(list::args::llen())
+        .subcommand(list::args::rpush())
         .get_matches();
 
     let endpoint = format!("{}:{}", DEF_BIND_HOST, memds_proto::DEF_PORT);
@@ -69,6 +73,20 @@ fn main() -> io::Result<()> {
             let key = matches.value_of("key").unwrap();
             let value = matches.value_of("value").unwrap();
             string::set(&client, key, value, true, false)
+        }
+        ("lindex", Some(matches)) => {
+            let key = matches.value_of("key").unwrap();
+            let n = value_t!(matches, "index", i32).unwrap();
+            list::lindex(&client, key, n)
+        }
+        ("llen", Some(matches)) => {
+            let key = matches.value_of("key").unwrap();
+            list::llen(&client, key)
+        }
+        ("rpush", Some(matches)) => {
+            let key = matches.value_of("key").unwrap();
+            let elem = matches.value_of("element").unwrap();
+            list::push(&client, key, elem, false)
         }
         ("set", Some(matches)) => {
             let key = matches.value_of("key").unwrap();
