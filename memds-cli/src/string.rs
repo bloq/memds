@@ -1,19 +1,9 @@
-use futures::Future;
 use std::io::{self, Error, ErrorKind, Write};
 
 use memds_proto::memds_api::*;
 use memds_proto::memds_api_grpc::MemdsClient;
 
-fn rpc_exec(client: &MemdsClient, req: &RequestMsg) -> io::Result<ResponseMsg> {
-    let exec = client.exec_async(&req).unwrap();
-    match exec.wait() {
-        Err(e) => {
-            let msg = format!("RPC.Exec failed: {:?}", e);
-            Err(Error::new(ErrorKind::Other, msg))
-        }
-        Ok(resp) => Ok(resp),
-    }
-}
+use crate::util;
 
 pub fn get(client: &MemdsClient, key: &str) -> io::Result<()> {
     let mut get_req = StrGetOp::new();
@@ -26,7 +16,7 @@ pub fn get(client: &MemdsClient, key: &str) -> io::Result<()> {
     let mut req = RequestMsg::new();
     req.ops.push(op);
 
-    let resp = rpc_exec(&client, &req)?;
+    let resp = util::rpc_exec(&client, &req)?;
 
     if !resp.ok {
         let msg = format!("Batch failure {}: {}", resp.err_code, resp.err_message);
@@ -70,7 +60,7 @@ pub fn set(
     let mut req = RequestMsg::new();
     req.ops.push(op);
 
-    let resp = rpc_exec(&client, &req)?;
+    let resp = util::rpc_exec(&client, &req)?;
 
     if !resp.ok {
         let msg = format!("Batch failure {}: {}", resp.err_code, resp.err_message);
@@ -107,7 +97,7 @@ pub fn incrdecr(client: &MemdsClient, otype: OpType, key: &str, n: i64) -> io::R
     let mut req = RequestMsg::new();
     req.ops.push(op);
 
-    let resp = rpc_exec(&client, &req)?;
+    let resp = util::rpc_exec(&client, &req)?;
 
     if !resp.ok {
         let msg = format!("Batch failure {}: {}", resp.err_code, resp.err_message);
@@ -141,7 +131,7 @@ pub fn strlen(client: &MemdsClient, key: &str) -> io::Result<()> {
     let mut req = RequestMsg::new();
     req.ops.push(op);
 
-    let resp = rpc_exec(&client, &req)?;
+    let resp = util::rpc_exec(&client, &req)?;
 
     if !resp.ok {
         let msg = format!("Batch failure {}: {}", resp.err_code, resp.err_message);

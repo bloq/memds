@@ -41,6 +41,39 @@ message NumRes {
   sint64 old_value = 1;	// value of key prior to operation
 }
 
+message KeyOp {
+  bytes key = 1;
+}
+
+message ListPushOp {
+  bytes key = 1;	// key of list
+  bool at_head = 2;	// (true) push head, (false) push tail
+  bool if_exists = 3;	// if true, push iff list exists
+  repeated bytes elements = 4; // items to push onto list
+}
+
+message ListPopOp {
+  bytes key = 1;	// key of list
+  bool at_head = 2;	// (true) pop head, (false) pop tail
+}
+
+message ListIndexOp {
+  bytes key = 1;	// key of list
+  sint32 index = 2;	// index of item to return
+}
+
+message ListRes {
+  repeated bytes elements = 1; // list of elements returned
+}
+
+message ListLenRes {
+  uint32 length = 1;	// length of list after op
+}
+
+message ListInfoRes {
+  uint32 length = 1;
+}
+
 enum OpType {
   NOOP = 0;
   STR_GET = 1;
@@ -50,6 +83,10 @@ enum OpType {
   STR_INCR = 5;
   STR_INCRBY = 6;
   STR_APPEND = 7;
+  LIST_PUSH = 8;
+  LIST_POP = 9;
+  LIST_INDEX = 10;
+  LIST_INFO = 11;
 }
 
 message Operation {
@@ -58,6 +95,10 @@ message Operation {
   StrGetOp get = 10;
   StrSetOp set = 11;
   NumOp num = 12;
+  ListPushOp lpush = 13;
+  ListPopOp lpop = 14;
+  ListIndexOp lindex = 15;
+  KeyOp key = 16;
 }
 
 message RequestMsg {
@@ -74,6 +115,9 @@ message OpResult {
   StrGetRes get = 10;
   StrSetRes set = 11;
   NumRes num = 12;
+  ListRes list = 13;
+  ListLenRes list_len = 14;
+  ListInfoRes list_info = 15;
 }
 
 message ResponseMsg {

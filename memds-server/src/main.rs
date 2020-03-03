@@ -21,6 +21,7 @@ use memds_proto::memds_api_grpc::{self, Memds};
 use memds_proto::util::result_err;
 use memds_proto::Atom;
 
+mod list;
 mod string;
 
 const APPNAME: &'static str = "memds-server";
@@ -84,6 +85,50 @@ impl Memds for MemdsService {
 
                     let num_req = op.get_num();
                     let op_res = string::incrdecr(&mut db, op.otype, num_req);
+                    out_resp.results.push(op_res);
+                }
+
+                OpType::LIST_PUSH => {
+                    if !op.has_lpush() {
+                        out_resp.results.push(result_err(-400, "Invalid op"));
+                        continue;
+                    }
+
+                    let lpush_req = op.get_lpush();
+                    let op_res = list::push(&mut db, lpush_req);
+                    out_resp.results.push(op_res);
+                }
+
+                OpType::LIST_POP => {
+                    if !op.has_lpop() {
+                        out_resp.results.push(result_err(-400, "Invalid op"));
+                        continue;
+                    }
+
+                    let lpop_req = op.get_lpop();
+                    let op_res = list::pop(&mut db, lpop_req);
+                    out_resp.results.push(op_res);
+                }
+
+                OpType::LIST_INFO => {
+                    if !op.has_key() {
+                        out_resp.results.push(result_err(-400, "Invalid op"));
+                        continue;
+                    }
+
+                    let key_req = op.get_key();
+                    let op_res = list::info(&mut db, key_req);
+                    out_resp.results.push(op_res);
+                }
+
+                OpType::LIST_INDEX => {
+                    if !op.has_lindex() {
+                        out_resp.results.push(result_err(-400, "Invalid op"));
+                        continue;
+                    }
+
+                    let lindex_req = op.get_lindex();
+                    let op_res = list::index(&mut db, lindex_req);
                     out_resp.results.push(op_res);
                 }
 

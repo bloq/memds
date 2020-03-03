@@ -1,6 +1,26 @@
 
 # Comparison with redis commands
 
+## List operations
+
+ - [ ] BLPOP
+ - [ ] BRPOP
+ - [ ] BRPOPLPUSH
+ - [x] LINDEX
+ - [ ] LINSERT
+ - [x] LLEN
+ - [x] LPOP
+ - [x] LPUSH
+ - [x] LPUSHX
+ - [ ] LRANGE
+ - [ ] LREM
+ - [ ] LSET
+ - [ ] LTRIM
+ - [x] RPOP
+ - [ ] RPOPLPUSH
+ - [x] RPUSH
+ - [x] RPUSHX
+
 ## String operations
 
  - [x] APPEND
