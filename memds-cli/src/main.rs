@@ -85,8 +85,8 @@ fn main() -> io::Result<()> {
         }
         ("rpush", Some(matches)) => {
             let key = matches.value_of("key").unwrap();
-            let elem = matches.value_of("element").unwrap();
-            list::push(&client, key, elem, false)
+            let elems: Vec<_> = matches.values_of("element").unwrap().collect();
+            list::push(&client, key, &elems, false)
         }
         ("set", Some(matches)) => {
             let key = matches.value_of("key").unwrap();

@@ -76,11 +76,13 @@ pub fn llen(client: &MemdsClient, key: &str) -> io::Result<()> {
     Ok(())
 }
 
-pub fn push(client: &MemdsClient, key: &str, elem: &str, at_head: bool) -> io::Result<()> {
+pub fn push(client: &MemdsClient, key: &str, elems: &Vec<&str>, at_head: bool) -> io::Result<()> {
     let mut op_req = ListPushOp::new();
     op_req.set_key(key.as_bytes().to_vec());
     op_req.at_head = at_head;
-    op_req.elements.push(elem.as_bytes().to_vec());
+    for elem in elems.iter() {
+        op_req.elements.push(elem.as_bytes().to_vec());
+    }
 
     let mut op = Operation::new();
     op.otype = OpType::LIST_PUSH;
@@ -149,7 +151,8 @@ pub mod args {
             .arg(
                 Arg::with_name("element")
                     .help("Value of item to store")
-                    .required(true),
+                    .required(true)
+                    .multiple(true),
             )
     }
 }
