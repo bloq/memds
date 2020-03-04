@@ -48,3 +48,12 @@
  - [ ] SETNX
  - [ ] SETRANGE
  - [x] STRLEN
+
+## Transactions
+
+ - [x] DISCARD
+ - [x] EXEC
+ - [x] MULTI
+ - [ ] UNWATCH
+ - [ ] WATCH
+
