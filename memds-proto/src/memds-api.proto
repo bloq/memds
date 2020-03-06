@@ -70,8 +70,8 @@ message ListRes {
   repeated bytes elements = 1; // list of elements returned
 }
 
-message ListLenRes {
-  uint32 length = 1;	// length of list after op
+message CountRes {
+  uint64 n = 1;		// many operations return a count, or length
 }
 
 message ListInfoRes {
@@ -121,7 +121,7 @@ message OpResult {
   StrSetRes set = 11;
   NumRes num = 12;
   ListRes list = 13;
-  ListLenRes list_len = 14;
+  CountRes count = 14;
   ListInfoRes list_info = 15;
 }
 

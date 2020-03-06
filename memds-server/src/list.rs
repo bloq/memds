@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use memds_proto::memds_api::{
-    KeyOp, ListIndexOp, ListInfoRes, ListLenRes, ListPopOp, ListPushOp, ListRes, OpResult, OpType,
+    CountRes, KeyOp, ListIndexOp, ListInfoRes, ListPopOp, ListPushOp, ListRes, OpResult, OpType,
 };
 use memds_proto::util::result_err;
 use memds_proto::Atom;
@@ -70,14 +70,14 @@ pub fn push(db: &mut HashMap<Vec<u8>, Atom>, req: &ListPushOp) -> OpResult {
         }
     }
 
-    let mut len_res = ListLenRes::new();
-    len_res.length = l.len() as u32;
+    let mut count_res = CountRes::new();
+    count_res.n = l.len() as u64;
 
     let mut op_res = OpResult::new();
 
     op_res.ok = true;
     op_res.otype = OpType::LIST_PUSH;
-    op_res.set_list_len(len_res);
+    op_res.set_count(count_res);
 
     op_res
 }
@@ -186,10 +186,10 @@ mod tests {
 
         assert_eq!(res.ok, true);
         assert_eq!(res.otype, OpType::LIST_PUSH);
-        assert!(res.has_list_len());
+        assert!(res.has_count());
 
-        let len_res = res.get_list_len();
-        assert_eq!(len_res.length, 1);
+        let count_res = res.get_count();
+        assert_eq!(count_res.n, 1);
 
         // push 1 item onto list head
         let mut req = ListPushOp::new();
@@ -201,10 +201,10 @@ mod tests {
 
         assert_eq!(res.ok, true);
         assert_eq!(res.otype, OpType::LIST_PUSH);
-        assert!(res.has_list_len());
+        assert!(res.has_count());
 
-        let len_res = res.get_list_len();
-        assert_eq!(len_res.length, 2);
+        let count_res = res.get_count();
+        assert_eq!(count_res.n, 2);
 
         // verify index 0 == "one"
         let mut req = ListIndexOp::new();
