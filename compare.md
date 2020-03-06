@@ -32,7 +32,7 @@
  - [x] DECRBY
  - [x] GET
  - [ ] GETBIT
- - [ ] GETRANGE
+ - [x] GETRANGE
  - [x] GETSET
  - [x] INCR
  - [x] INCRBY
@@ -45,7 +45,7 @@
 	- [ ] SET options, notably expiration
  - [ ] SETBIT
  - [ ] SETEX
- - [ ] SETNX
+ - [x] SETNX
  - [ ] SETRANGE
  - [x] STRLEN
 

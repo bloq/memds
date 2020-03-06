@@ -132,10 +132,12 @@ pub fn get(db: &mut HashMap<Vec<u8>, Atom>, req: &StrGetOp, otype: OpType) -> Op
 }
 
 pub fn set(db: &mut HashMap<Vec<u8>, Atom>, req: &StrSetOp) -> OpResult {
-    let previous = db.insert(
-        req.get_key().to_vec(),
-        Atom::String(req.get_value().to_vec()),
-    );
+    let key = req.get_key();
+    if req.create_excl && db.contains_key(key) {
+        return result_err(-412, "Precondition failed: key exists");
+    }
+
+    let previous = db.insert(key.to_vec(), Atom::String(req.get_value().to_vec()));
 
     let mut set_res = StrSetRes::new();
     if req.return_old && previous.is_some() {

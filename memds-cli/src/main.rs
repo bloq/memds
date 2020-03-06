@@ -30,6 +30,7 @@ fn main() -> io::Result<()> {
         .subcommand(string::args::incr())
         .subcommand(string::args::incrby())
         .subcommand(string::args::set())
+        .subcommand(string::args::setnx())
         .subcommand(string::args::strlen())
         .subcommand(list::args::lindex())
         .subcommand(list::args::llen())
@@ -51,7 +52,7 @@ fn main() -> io::Result<()> {
         ("append", Some(matches)) => {
             let key = matches.value_of("key").unwrap();
             let value = matches.value_of("value").unwrap();
-            string::set(&client, key, value, false, true)
+            string::set(&client, key, value, false, true, false)
         }
         ("decr", Some(matches)) => {
             let key = matches.value_of("key").unwrap();
@@ -84,7 +85,7 @@ fn main() -> io::Result<()> {
         ("getset", Some(matches)) => {
             let key = matches.value_of("key").unwrap();
             let value = matches.value_of("value").unwrap();
-            string::set(&client, key, value, true, false)
+            string::set(&client, key, value, true, false, false)
         }
         ("lindex", Some(matches)) => {
             let key = matches.value_of("key").unwrap();
@@ -126,7 +127,12 @@ fn main() -> io::Result<()> {
         ("set", Some(matches)) => {
             let key = matches.value_of("key").unwrap();
             let value = matches.value_of("value").unwrap();
-            string::set(&client, key, value, false, false)
+            string::set(&client, key, value, false, false, false)
+        }
+        ("setnx", Some(matches)) => {
+            let key = matches.value_of("key").unwrap();
+            let value = matches.value_of("value").unwrap();
+            string::set(&client, key, value, false, false, true)
         }
         ("strlen", Some(matches)) => {
             let key = matches.value_of("key").unwrap();

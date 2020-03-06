@@ -80,11 +80,13 @@ pub fn set(
     value: &str,
     return_old: bool,
     append: bool,
+    create_excl: bool,
 ) -> io::Result<()> {
     let mut set_req = StrSetOp::new();
     set_req.set_key(key.as_bytes().to_vec());
     set_req.set_value(value.as_bytes().to_vec());
     set_req.return_old = return_old;
+    set_req.create_excl = create_excl;
 
     let mut op = Operation::new();
     op.otype = match append {
@@ -305,6 +307,21 @@ pub mod args {
     pub fn set() -> App<'static, 'static> {
         SubCommand::with_name("set")
             .about("String.Set: Store item")
+            .arg(
+                Arg::with_name("key")
+                    .help("Key of item to store")
+                    .required(true),
+            )
+            .arg(
+                Arg::with_name("value")
+                    .help("Value of item to store")
+                    .required(true),
+            )
+    }
+
+    pub fn setnx() -> App<'static, 'static> {
+        SubCommand::with_name("setnx")
+            .about("String.SetNX: Store item, if key does not exist")
             .arg(
                 Arg::with_name("key")
                     .help("Key of item to store")
