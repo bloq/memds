@@ -25,10 +25,12 @@ fn main() -> io::Result<()> {
         .subcommand(string::args::decr())
         .subcommand(string::args::decrby())
         .subcommand(string::args::get())
+        .subcommand(string::args::getrange())
         .subcommand(string::args::getset())
         .subcommand(string::args::incr())
         .subcommand(string::args::incrby())
         .subcommand(string::args::set())
+        .subcommand(string::args::setnx())
         .subcommand(string::args::strlen())
         .subcommand(list::args::lindex())
         .subcommand(list::args::llen())
@@ -50,7 +52,7 @@ fn main() -> io::Result<()> {
         ("append", Some(matches)) => {
             let key = matches.value_of("key").unwrap();
             let value = matches.value_of("value").unwrap();
-            string::set(&client, key, value, false, true)
+            string::set(&client, key, value, false, true, false)
         }
         ("decr", Some(matches)) => {
             let key = matches.value_of("key").unwrap();
@@ -74,10 +76,16 @@ fn main() -> io::Result<()> {
             let key = matches.value_of("key").unwrap();
             string::get(&client, key)
         }
+        ("getrange", Some(matches)) => {
+            let key = matches.value_of("key").unwrap();
+            let start = value_t!(matches, "start", i32).unwrap_or(0);
+            let end = value_t!(matches, "end", i32).unwrap_or(0);
+            string::getrange(&client, key, start, end)
+        }
         ("getset", Some(matches)) => {
             let key = matches.value_of("key").unwrap();
             let value = matches.value_of("value").unwrap();
-            string::set(&client, key, value, true, false)
+            string::set(&client, key, value, true, false, false)
         }
         ("lindex", Some(matches)) => {
             let key = matches.value_of("key").unwrap();
@@ -119,7 +127,12 @@ fn main() -> io::Result<()> {
         ("set", Some(matches)) => {
             let key = matches.value_of("key").unwrap();
             let value = matches.value_of("value").unwrap();
-            string::set(&client, key, value, false, false)
+            string::set(&client, key, value, false, false, false)
+        }
+        ("setnx", Some(matches)) => {
+            let key = matches.value_of("key").unwrap();
+            let value = matches.value_of("value").unwrap();
+            string::set(&client, key, value, false, false, true)
         }
         ("strlen", Some(matches)) => {
             let key = matches.value_of("key").unwrap();

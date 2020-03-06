@@ -75,20 +75,52 @@ pub fn incrdecr(db: &mut HashMap<Vec<u8>, Atom>, otype: OpType, req: &NumOp) -> 
     op_res
 }
 
-pub fn get(db: &mut HashMap<Vec<u8>, Atom>, req: &StrGetOp) -> OpResult {
+fn str_index(len: i64, pos_requested: i64) -> usize {
+    let mut pos = {
+        if pos_requested >= 0 {
+            pos_requested
+        } else {
+            len + pos_requested + 1
+        }
+    };
+    if pos < 0 {
+        pos = 0;
+    } else if pos > len {
+        pos = len;
+    }
+
+    pos as usize
+}
+
+fn sanitize_range(in_start: i32, in_end: i32, value_len: i32) -> (usize, usize) {
+    let start = str_index(value_len as i64, in_start as i64);
+    let mut end = str_index(value_len as i64, in_end as i64);
+    if start > end {
+        end = start;
+    }
+
+    (start, end)
+}
+
+pub fn get(db: &mut HashMap<Vec<u8>, Atom>, req: &StrGetOp, otype: OpType) -> OpResult {
     match db.get(req.get_key()) {
         Some(atom) => match atom {
             Atom::String(value) => {
                 let mut get_res = StrGetRes::new();
                 if req.want_length {
                     get_res.set_value_length(value.len() as u64);
+                } else if otype == OpType::STR_GETRANGE {
+                    let (start, end) =
+                        sanitize_range(req.range_start, req.range_end, value.len() as i32);
+                    let sub = &value[start..end];
+                    get_res.set_value(sub.to_vec());
                 } else {
                     get_res.set_value(value.to_vec());
                 }
 
                 let mut op_res = OpResult::new();
                 op_res.ok = true;
-                op_res.otype = OpType::STR_GET;
+                op_res.otype = otype;
                 op_res.set_get(get_res);
 
                 op_res
@@ -100,10 +132,12 @@ pub fn get(db: &mut HashMap<Vec<u8>, Atom>, req: &StrGetOp) -> OpResult {
 }
 
 pub fn set(db: &mut HashMap<Vec<u8>, Atom>, req: &StrSetOp) -> OpResult {
-    let previous = db.insert(
-        req.get_key().to_vec(),
-        Atom::String(req.get_value().to_vec()),
-    );
+    let key = req.get_key();
+    if req.create_excl && db.contains_key(key) {
+        return result_err(-412, "Precondition failed: key exists");
+    }
+
+    let previous = db.insert(key.to_vec(), Atom::String(req.get_value().to_vec()));
 
     let mut set_res = StrSetRes::new();
     if req.return_old && previous.is_some() {
@@ -178,7 +212,7 @@ mod tests {
         req.set_key(b"foo".to_vec());
         req.set_want_length(false);
 
-        let res = string::get(&mut db, &req);
+        let res = string::get(&mut db, &req, OpType::STR_GET);
 
         assert_eq!(res.ok, true);
         assert_eq!(res.otype, OpType::STR_GET);
@@ -197,7 +231,7 @@ mod tests {
         req.set_key(b"foo".to_vec());
         req.set_want_length(true);
 
-        let res = string::get(&mut db, &req);
+        let res = string::get(&mut db, &req, OpType::STR_GET);
 
         assert_eq!(res.ok, true);
         assert_eq!(res.otype, OpType::STR_GET);
@@ -209,6 +243,45 @@ mod tests {
     }
 
     #[test]
+    fn get_range() {
+        let mut db = get_test_db();
+
+        // testing: (0,4) substr of "Jane Doe"
+        let mut req = StrGetOp::new();
+        req.set_key(b"name".to_vec());
+        req.substr = true;
+        req.range_start = 0;
+        req.range_end = -4;
+
+        let res = string::get(&mut db, &req, OpType::STR_GETRANGE);
+
+        assert_eq!(res.ok, true);
+        assert_eq!(res.otype, OpType::STR_GETRANGE);
+        assert!(res.has_get());
+        assert!(!res.has_set());
+
+        let get_res = res.get_get();
+        assert_eq!(get_res.value, b"Jane ".to_vec());
+
+        // testing: (0,-1) substr of "Jane Doe"
+        let mut req = StrGetOp::new();
+        req.set_key(b"name".to_vec());
+        req.substr = true;
+        req.range_start = 0;
+        req.range_end = -1;
+
+        let res = string::get(&mut db, &req, OpType::STR_GETRANGE);
+
+        assert_eq!(res.ok, true);
+        assert_eq!(res.otype, OpType::STR_GETRANGE);
+        assert!(res.has_get());
+        assert!(!res.has_set());
+
+        let get_res = res.get_get();
+        assert_eq!(get_res.value, b"Jane Doe".to_vec());
+    }
+
+    #[test]
     fn get_not_found() {
         let mut db = get_test_db();
 
@@ -216,7 +289,7 @@ mod tests {
         req.set_key(b"does not exist".to_vec());
         req.set_want_length(false);
 
-        let res = string::get(&mut db, &req);
+        let res = string::get(&mut db, &req, OpType::STR_GET);
 
         assert_eq!(res.ok, false);
         assert_eq!(res.otype, OpType::NOOP);
@@ -332,7 +405,7 @@ mod tests {
         let mut req = StrGetOp::new();
         req.set_key(b"num".to_vec());
 
-        let res = string::get(&mut db, &req);
+        let res = string::get(&mut db, &req, OpType::STR_GET);
         assert_eq!(res.ok, true);
         let get_res = res.get_get();
         assert_eq!(get_res.value, b"0".to_vec());
@@ -376,7 +449,7 @@ mod tests {
         let mut req = StrGetOp::new();
         req.set_key(b"app".to_vec());
 
-        let res = string::get(&mut db, &req);
+        let res = string::get(&mut db, &req, OpType::STR_GET);
         assert_eq!(res.ok, true);
         let get_res = res.get_get();
         assert_eq!(get_res.value, b"doordoor".to_vec());
