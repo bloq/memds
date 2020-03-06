@@ -24,6 +24,7 @@ fn main() -> io::Result<()> {
         .about("Memds CLI")
         .subcommand(keys::args::del())
         .subcommand(keys::args::exists())
+        .subcommand(keys::args::typ())
         .subcommand(list::args::lindex())
         .subcommand(list::args::llen())
         .subcommand(list::args::lpop())
@@ -148,6 +149,10 @@ fn main() -> io::Result<()> {
         ("strlen", Some(matches)) => {
             let key = matches.value_of("key").unwrap();
             string::strlen(&client, key)
+        }
+        ("type", Some(matches)) => {
+            let key = matches.value_of("key").unwrap();
+            keys::typ(&client, key)
         }
         ("", None) => {
             println!("No subcommand specified.  Run with --help for help.");

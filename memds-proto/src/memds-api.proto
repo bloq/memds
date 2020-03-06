@@ -12,6 +12,12 @@ service Memds {
   rpc Exec (RequestMsg) returns (ResponseMsg) {}
 }
 
+enum AtomType {
+    NOTYPE = 0;
+    STRING = 1;
+    LIST = 2;
+}
+
 message StrGetOp {
   bytes key = 1;	// key of item to retrieve
   bool want_length = 2;	// (true) return value length, (false) return value
@@ -82,10 +88,15 @@ message ListInfoRes {
   uint32 length = 1;
 }
 
+message TypeRes {
+  AtomType typ = 1;
+}
+
 enum OpType {
   NOOP = 0;
   KEYS_DEL = 13;
   KEYS_EXIST = 14;
+  KEYS_TYPE = 15;
   LIST_PUSH = 8;
   LIST_POP = 9;
   LIST_INDEX = 10;
@@ -130,6 +141,7 @@ message OpResult {
   ListRes list = 13;
   CountRes count = 14;
   ListInfoRes list_info = 15;
+  TypeRes typ = 16;
 }
 
 message ResponseMsg {

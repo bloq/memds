@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
-use memds_proto::memds_api::{CountRes, KeyListOp, OpResult, OpType};
+use memds_proto::memds_api::{AtomType, CountRes, KeyListOp, KeyOp, OpResult, OpType, TypeRes};
+use memds_proto::util::result_err;
 use memds_proto::Atom;
 
 pub fn del_exist(db: &mut HashMap<Vec<u8>, Atom>, req: &KeyListOp, remove_item: bool) -> OpResult {
@@ -33,10 +34,34 @@ pub fn del_exist(db: &mut HashMap<Vec<u8>, Atom>, req: &KeyListOp, remove_item: 
     op_res
 }
 
+pub fn typ(db: &mut HashMap<Vec<u8>, Atom>, req: &KeyOp) -> OpResult {
+    let key = req.get_key();
+    let typ = match db.get(key) {
+        None => {
+            return result_err(-404, "Not Found");
+        }
+        Some(atom) => match atom {
+            Atom::String(_) => AtomType::STRING,
+            Atom::List(_) => AtomType::LIST,
+        },
+    };
+
+    let mut type_res = TypeRes::new();
+    type_res.typ = typ;
+
+    let mut op_res = OpResult::new();
+
+    op_res.ok = true;
+    op_res.otype = OpType::KEYS_TYPE;
+    op_res.set_typ(type_res);
+
+    op_res
+}
+
 #[cfg(test)]
 mod tests {
     use crate::keys;
-    use memds_proto::memds_api::{KeyListOp, OpType};
+    use memds_proto::memds_api::{AtomType, KeyListOp, KeyOp, OpType};
     use memds_proto::Atom;
     use std::collections::HashMap;
 
@@ -101,5 +126,22 @@ mod tests {
 
         let count_res = res.get_count();
         assert_eq!(count_res.n, 2);
+    }
+
+    #[test]
+    fn typ() {
+        let mut db = get_test_db();
+
+        let mut req = KeyOp::new();
+        req.set_key(b"foo".to_vec());
+
+        let res = keys::typ(&mut db, &req);
+
+        assert_eq!(res.ok, true);
+        assert_eq!(res.otype, OpType::KEYS_TYPE);
+        assert!(res.has_typ());
+
+        let type_res = res.get_typ();
+        assert_eq!(type_res.typ, AtomType::STRING);
     }
 }
