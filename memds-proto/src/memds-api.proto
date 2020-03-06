@@ -49,6 +49,10 @@ message KeyOp {
   bytes key = 1;
 }
 
+message KeyListOp {
+  repeated bytes keys = 1;
+}
+
 message ListPushOp {
   bytes key = 1;	// key of list
   bool at_head = 2;	// (true) push head, (false) push tail
@@ -80,6 +84,12 @@ message ListInfoRes {
 
 enum OpType {
   NOOP = 0;
+  KEYS_DEL = 13;
+  KEYS_EXIST = 14;
+  LIST_PUSH = 8;
+  LIST_POP = 9;
+  LIST_INDEX = 10;
+  LIST_INFO = 11;
   STR_GET = 1;
   STR_GETRANGE = 12;
   STR_SET = 2;
@@ -88,10 +98,6 @@ enum OpType {
   STR_INCR = 5;
   STR_INCRBY = 6;
   STR_APPEND = 7;
-  LIST_PUSH = 8;
-  LIST_POP = 9;
-  LIST_INDEX = 10;
-  LIST_INFO = 11;
 }
 
 message Operation {
@@ -104,6 +110,7 @@ message Operation {
   ListPopOp lpop = 14;
   ListIndexOp lindex = 15;
   KeyOp key = 16;
+  KeyListOp key_list = 17;
 }
 
 message RequestMsg {

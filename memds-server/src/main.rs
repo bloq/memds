@@ -21,6 +21,7 @@ use memds_proto::memds_api_grpc::{self, Memds};
 use memds_proto::util::result_err;
 use memds_proto::Atom;
 
+mod keys;
 mod list;
 mod string;
 
@@ -50,6 +51,17 @@ impl Memds for MemdsService {
         let ops = msg_req.get_ops();
         for op in ops.iter() {
             match op.otype {
+                OpType::KEYS_DEL | OpType::KEYS_EXIST => {
+                    if !op.has_key_list() {
+                        out_resp.results.push(result_err(-400, "Invalid op"));
+                        continue;
+                    }
+                    let keys_req = op.get_key_list();
+                    let remove_it = op.otype == OpType::KEYS_DEL;
+                    let op_res = keys::del_exist(&mut db, keys_req, remove_it);
+                    out_resp.results.push(op_res);
+                }
+
                 OpType::STR_GET | OpType::STR_GETRANGE => {
                     if !op.has_get() {
                         out_resp.results.push(result_err(-400, "Invalid op"));
