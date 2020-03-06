@@ -25,6 +25,7 @@ fn main() -> io::Result<()> {
         .subcommand(string::args::decr())
         .subcommand(string::args::decrby())
         .subcommand(string::args::get())
+        .subcommand(string::args::getrange())
         .subcommand(string::args::getset())
         .subcommand(string::args::incr())
         .subcommand(string::args::incrby())
@@ -73,6 +74,12 @@ fn main() -> io::Result<()> {
         ("get", Some(matches)) => {
             let key = matches.value_of("key").unwrap();
             string::get(&client, key)
+        }
+        ("getrange", Some(matches)) => {
+            let key = matches.value_of("key").unwrap();
+            let start = value_t!(matches, "start", i32).unwrap_or(0);
+            let end = value_t!(matches, "end", i32).unwrap_or(0);
+            string::getrange(&client, key, start, end)
         }
         ("getset", Some(matches)) => {
             let key = matches.value_of("key").unwrap();

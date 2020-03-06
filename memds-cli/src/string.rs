@@ -38,6 +38,42 @@ pub fn get(client: &MemdsClient, key: &str) -> io::Result<()> {
     }
 }
 
+pub fn getrange(client: &MemdsClient, key: &str, start: i32, end: i32) -> io::Result<()> {
+    let mut get_req = StrGetOp::new();
+    get_req.set_key(key.as_bytes().to_vec());
+    get_req.substr = true;
+    get_req.range_start = start;
+    get_req.range_end = end;
+
+    let mut op = Operation::new();
+    op.otype = OpType::STR_GETRANGE;
+    op.set_get(get_req);
+
+    let mut req = RequestMsg::new();
+    req.ops.push(op);
+
+    let resp = util::rpc_exec(&client, &req)?;
+
+    if !resp.ok {
+        let msg = format!("Batch failure {}: {}", resp.err_code, resp.err_message);
+        return Err(Error::new(ErrorKind::Other, msg));
+    }
+
+    let results = resp.get_results();
+    assert!(results.len() == 1);
+
+    let result = &results[0];
+    if result.ok {
+        let get_res = results[0].get_get();
+        let value = get_res.get_value();
+        io::stdout().write_all(value)?;
+        Ok(())
+    } else {
+        let msg = format!("{}: {}", key, result.err_message);
+        Err(Error::new(ErrorKind::Other, msg))
+    }
+}
+
 pub fn set(
     client: &MemdsClient,
     key: &str,
@@ -202,6 +238,26 @@ pub mod args {
             .arg(
                 Arg::with_name("key")
                     .help("Key of item to retrieve")
+                    .required(true),
+            )
+    }
+
+    pub fn getrange() -> App<'static, 'static> {
+        SubCommand::with_name("getrange")
+            .about("String.GetRange: Retrieve subset of item")
+            .arg(
+                Arg::with_name("key")
+                    .help("Key of item to retrieve")
+                    .required(true),
+            )
+            .arg(
+                Arg::with_name("start")
+                    .help("Start position within string (Negative offsets measure from end of string)")
+                    .required(true),
+            )
+            .arg(
+                Arg::with_name("end")
+                    .help("End position within string (Negative offsets measure from end of string)")
                     .required(true),
             )
     }

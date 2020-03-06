@@ -50,13 +50,13 @@ impl Memds for MemdsService {
         let ops = msg_req.get_ops();
         for op in ops.iter() {
             match op.otype {
-                OpType::STR_GET => {
+                OpType::STR_GET | OpType::STR_GETRANGE => {
                     if !op.has_get() {
                         out_resp.results.push(result_err(-400, "Invalid op"));
                         continue;
                     }
                     let get_req = op.get_get();
-                    let op_res = string::get(&mut db, get_req);
+                    let op_res = string::get(&mut db, get_req, op.otype);
                     out_resp.results.push(op_res);
                 }
 
