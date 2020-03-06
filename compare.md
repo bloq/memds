@@ -1,6 +1,33 @@
 
 # Comparison with redis commands
 
+## Keys operations
+
+ - [x] DEL
+ - [ ] DUMP
+ - [x] EXISTS
+ - [ ] EXPIRE
+ - [ ] EXPIREAT
+ - [ ] KEYS
+ - [ ] MIGATE
+ - [ ] MOVE
+ - [ ] OBJECT
+ - [ ] PERSIST
+ - [ ] PEXPIRE
+ - [ ] PEXPIREAT
+ - [ ] PTTL
+ - [ ] RANDOMKEY
+ - [ ] RENAME
+ - [ ] RENAMENX
+ - [ ] RESTORE
+ - [ ] SORT
+ - [ ] TOUCH
+ - [ ] TTL
+ - [ ] TYPE
+ - [ ] UNLINK
+ - [ ] WAIT
+ - [ ] SCAN
+
 ## List operations
 
  - [ ] BLPOP
