@@ -88,27 +88,40 @@ message ListInfoRes {
   uint32 length = 1;
 }
 
+message TimeRes {
+  uint64 secs = 1;
+  uint32 nanosecs = 2;
+}
+
 message TypeRes {
   AtomType typ = 1;
 }
 
 enum OpType {
   NOOP = 0;
-  KEYS_DEL = 13;
-  KEYS_EXIST = 14;
-  KEYS_TYPE = 15;
-  LIST_PUSH = 8;
-  LIST_POP = 9;
-  LIST_INDEX = 10;
-  LIST_INFO = 11;
-  STR_GET = 1;
-  STR_GETRANGE = 12;
-  STR_SET = 2;
-  STR_DECR = 3;
-  STR_DECRBY = 4;
-  STR_INCR = 5;
-  STR_INCRBY = 6;
-  STR_APPEND = 7;
+
+  KEYS_DEL = 10;
+  KEYS_EXIST = 11;
+  KEYS_TYPE = 12;
+
+  LIST_PUSH = 20;
+  LIST_POP = 21;
+  LIST_INDEX = 22;
+  LIST_INFO = 23;
+
+  SRV_DBSIZE = 41;
+  SRV_FLUSHDB = 42;
+  SRV_FLUSHALL = 43;
+  SRV_TIME = 40;
+
+  STR_GET = 31;
+  STR_GETRANGE = 32;
+  STR_SET = 38;
+  STR_DECR = 33;
+  STR_DECRBY = 34;
+  STR_INCR = 35;
+  STR_INCRBY = 36;
+  STR_APPEND = 37;
 }
 
 message Operation {
@@ -142,6 +155,7 @@ message OpResult {
   CountRes count = 14;
   ListInfoRes list_info = 15;
   TypeRes typ = 16;
+  TimeRes srv_time = 17;
 }
 
 message ResponseMsg {

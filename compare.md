@@ -23,7 +23,7 @@
  - [ ] SORT
  - [ ] TOUCH
  - [ ] TTL
- - [ ] TYPE
+ - [x] TYPE
  - [ ] UNLINK
  - [ ] WAIT
  - [ ] SCAN
@@ -47,6 +47,60 @@
  - [ ] RPOPLPUSH
  - [x] RPUSH
  - [x] RPUSHX
+
+## Server operations
+
+ - [ ] BGREWRITEAOF
+ - [ ] BGSAVE
+ - [ ] CLIENT ID
+ - [ ] CLIENT KILL
+ - [ ] CLIENT LIST
+ - [ ] CLIENT GETNAME
+ - [ ] CLIENT PAUSE
+ - [ ] CLIENT REPLY
+ - [ ] CLIENT SETNAME
+ - [ ] CLIENT UNBLOCK
+ - [ ] COMMAND
+ - [ ] COMMAND COUNT
+ - [ ] COMMAND GETKEYS
+ - [ ] COMMAND INFO
+ - [ ] CONFIG GET
+ - [ ] CONFIG REWRITE
+ - [ ] CONFIG SET
+ - [ ] CONFIG RESETSTAT
+ - [x] DBSIZE
+ - [ ] DEBUG OBJECT
+ - [ ] DEBUG SEGFAULT
+ - [x] FLUSHALL
+ - [x] FLUSHDB
+ - [ ] INFO
+ - [ ] LOLWUT
+ - [ ] LASTSAVE
+ - [ ] MEMORY DOCTOR
+ - [ ] MEMORY HELP
+ - [ ] MEMORY MALLOC-STATS
+ - [ ] MEMORY PURGE
+ - [ ] MEMORY STATS
+ - [ ] MEMORY USAGE
+ - [ ] MODULE LIST
+ - [ ] MODULE LOAD
+ - [ ] MODULE UNLOAD
+ - [ ] MONITOR
+ - [ ] ROLE
+ - [ ] SAVE
+ - [ ] SHUTDOWN
+ - [ ] SLAVEOF
+ - [ ] REPLICAOF
+ - [ ] SLOWLOG
+ - [ ] SYNC
+ - [ ] PSYNC
+ - [x] TIME
+ - [ ] LATENCY DOCTOR
+ - [ ] LATENCY GRAPH
+ - [ ] LATENCY HISTORY
+ - [ ] LATENCY LATEST
+ - [ ] LATENCY RESET
+ - [ ] LATENCY HELP
 
 ## String operations
 
