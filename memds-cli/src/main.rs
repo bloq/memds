@@ -25,6 +25,8 @@ fn main() -> io::Result<()> {
         .about("Memds CLI")
         .subcommand(keys::args::del())
         .subcommand(keys::args::exists())
+        .subcommand(keys::args::rename())
+        .subcommand(keys::args::renamenx())
         .subcommand(keys::args::typ())
         .subcommand(list::args::lindex())
         .subcommand(list::args::llen())
@@ -129,6 +131,16 @@ fn main() -> io::Result<()> {
             let key = matches.value_of("key").unwrap();
             let elems: Vec<_> = matches.values_of("element").unwrap().collect();
             list::push(&client, key, &elems, true, true)
+        }
+        ("rename", Some(matches)) => {
+            let old_key = matches.value_of("old_key").unwrap();
+            let new_key = matches.value_of("new_key").unwrap();
+            keys::rename(&client, old_key, new_key, false)
+        }
+        ("renamenx", Some(matches)) => {
+            let old_key = matches.value_of("old_key").unwrap();
+            let new_key = matches.value_of("new_key").unwrap();
+            keys::rename(&client, old_key, new_key, true)
         }
         ("rpop", Some(matches)) => {
             let key = matches.value_of("key").unwrap();

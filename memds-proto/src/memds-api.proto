@@ -55,6 +55,12 @@ message KeyOp {
   bytes key = 1;
 }
 
+message KeyRenameOp {
+  bytes old_key = 1;
+  bytes new_key = 2;
+  bool create_excl = 3;	// if true, store iff new_key does NOT exist
+}
+
 message KeyListOp {
   repeated bytes keys = 1;
 }
@@ -102,6 +108,7 @@ enum OpType {
 
   KEYS_DEL = 10;
   KEYS_EXIST = 11;
+  KEYS_RENAME = 13;
   KEYS_TYPE = 12;
 
   LIST_PUSH = 20;
@@ -135,6 +142,7 @@ message Operation {
   ListIndexOp lindex = 15;
   KeyOp key = 16;
   KeyListOp key_list = 17;
+  KeyRenameOp rename = 18;
 }
 
 message RequestMsg {

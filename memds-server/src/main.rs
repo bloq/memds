@@ -52,16 +52,6 @@ impl Memds for MemdsService {
         let ops = msg_req.get_ops();
         for op in ops.iter() {
             match op.otype {
-                OpType::KEYS_TYPE => {
-                    if !op.has_key() {
-                        out_resp.results.push(result_err(-400, "Invalid op"));
-                        continue;
-                    }
-                    let key_req = op.get_key();
-                    let op_res = keys::typ(&mut db, key_req);
-                    out_resp.results.push(op_res);
-                }
-
                 OpType::KEYS_DEL | OpType::KEYS_EXIST => {
                     if !op.has_key_list() {
                         out_resp.results.push(result_err(-400, "Invalid op"));
@@ -70,6 +60,26 @@ impl Memds for MemdsService {
                     let keys_req = op.get_key_list();
                     let remove_it = op.otype == OpType::KEYS_DEL;
                     let op_res = keys::del_exist(&mut db, keys_req, remove_it);
+                    out_resp.results.push(op_res);
+                }
+
+                OpType::KEYS_RENAME => {
+                    if !op.has_rename() {
+                        out_resp.results.push(result_err(-400, "Invalid op"));
+                        continue;
+                    }
+                    let rn_req = op.get_rename();
+                    let op_res = keys::rename(&mut db, rn_req);
+                    out_resp.results.push(op_res);
+                }
+
+                OpType::KEYS_TYPE => {
+                    if !op.has_key() {
+                        out_resp.results.push(result_err(-400, "Invalid op"));
+                        continue;
+                    }
+                    let key_req = op.get_key();
+                    let op_res = keys::typ(&mut db, key_req);
                     out_resp.results.push(op_res);
                 }
 
