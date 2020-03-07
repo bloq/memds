@@ -94,7 +94,7 @@
  - [ ] SLOWLOG
  - [ ] SYNC
  - [ ] PSYNC
- - [ ] TIME
+ - [x] TIME
  - [ ] LATENCY DOCTOR
  - [ ] LATENCY GRAPH
  - [ ] LATENCY HISTORY

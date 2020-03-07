@@ -10,6 +10,7 @@ use std::sync::Arc;
 
 mod keys;
 mod list;
+mod server;
 mod string;
 mod util;
 
@@ -33,6 +34,7 @@ fn main() -> io::Result<()> {
         .subcommand(list::args::rpop())
         .subcommand(list::args::rpush())
         .subcommand(list::args::rpushx())
+        .subcommand(server::args::time())
         .subcommand(string::args::append())
         .subcommand(string::args::decr())
         .subcommand(string::args::decrby())
@@ -150,6 +152,7 @@ fn main() -> io::Result<()> {
             let key = matches.value_of("key").unwrap();
             string::strlen(&client, key)
         }
+        ("time", Some(_matches)) => server::time(&client),
         ("type", Some(matches)) => {
             let key = matches.value_of("key").unwrap();
             keys::typ(&client, key)
