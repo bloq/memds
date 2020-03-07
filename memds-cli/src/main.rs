@@ -8,6 +8,7 @@ use memds_proto::memds_api_grpc::MemdsClient;
 use std::io;
 use std::sync::Arc;
 
+mod keys;
 mod list;
 mod string;
 mod util;
@@ -21,6 +22,17 @@ fn main() -> io::Result<()> {
     let cli_matches = clap::App::new(APPNAME)
         .version(VERSION)
         .about("Memds CLI")
+        .subcommand(keys::args::del())
+        .subcommand(keys::args::exists())
+        .subcommand(keys::args::typ())
+        .subcommand(list::args::lindex())
+        .subcommand(list::args::llen())
+        .subcommand(list::args::lpop())
+        .subcommand(list::args::lpush())
+        .subcommand(list::args::lpushx())
+        .subcommand(list::args::rpop())
+        .subcommand(list::args::rpush())
+        .subcommand(list::args::rpushx())
         .subcommand(string::args::append())
         .subcommand(string::args::decr())
         .subcommand(string::args::decrby())
@@ -32,14 +44,6 @@ fn main() -> io::Result<()> {
         .subcommand(string::args::set())
         .subcommand(string::args::setnx())
         .subcommand(string::args::strlen())
-        .subcommand(list::args::lindex())
-        .subcommand(list::args::llen())
-        .subcommand(list::args::lpop())
-        .subcommand(list::args::lpush())
-        .subcommand(list::args::lpushx())
-        .subcommand(list::args::rpop())
-        .subcommand(list::args::rpush())
-        .subcommand(list::args::rpushx())
         .get_matches();
 
     let endpoint = format!("{}:{}", DEF_BIND_HOST, memds_proto::DEF_PORT);
@@ -62,6 +66,14 @@ fn main() -> io::Result<()> {
             let key = matches.value_of("key").unwrap();
             let n = value_t!(matches, "n", i64).unwrap_or(1);
             string::incrdecr(&client, OpType::STR_DECRBY, key, n)
+        }
+        ("del", Some(matches)) => {
+            let keys: Vec<_> = matches.values_of("key").unwrap().collect();
+            keys::del_exist(&client, &keys, true)
+        }
+        ("exists", Some(matches)) => {
+            let keys: Vec<_> = matches.values_of("key").unwrap().collect();
+            keys::del_exist(&client, &keys, false)
         }
         ("incr", Some(matches)) => {
             let key = matches.value_of("key").unwrap();
@@ -137,6 +149,10 @@ fn main() -> io::Result<()> {
         ("strlen", Some(matches)) => {
             let key = matches.value_of("key").unwrap();
             string::strlen(&client, key)
+        }
+        ("type", Some(matches)) => {
+            let key = matches.value_of("key").unwrap();
+            keys::typ(&client, key)
         }
         ("", None) => {
             println!("No subcommand specified.  Run with --help for help.");

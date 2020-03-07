@@ -153,8 +153,8 @@ pub fn push(
         return Err(Error::new(ErrorKind::Other, msg));
     }
 
-    let list_res = results[0].get_list_len();
-    println!("{}", list_res.length);
+    let count_res = results[0].get_count();
+    println!("{}", count_res.n);
     Ok(())
 }
 
