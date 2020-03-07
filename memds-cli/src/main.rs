@@ -34,6 +34,9 @@ fn main() -> io::Result<()> {
         .subcommand(list::args::rpop())
         .subcommand(list::args::rpush())
         .subcommand(list::args::rpushx())
+        .subcommand(server::args::dbsize())
+        .subcommand(server::args::flushall())
+        .subcommand(server::args::flushdb())
         .subcommand(server::args::time())
         .subcommand(string::args::append())
         .subcommand(string::args::decr())
@@ -60,6 +63,7 @@ fn main() -> io::Result<()> {
             let value = matches.value_of("value").unwrap();
             string::set(&client, key, value, false, true, false)
         }
+        ("dbsize", Some(_matches)) => server::dbsize(&client),
         ("decr", Some(matches)) => {
             let key = matches.value_of("key").unwrap();
             string::incrdecr(&client, OpType::STR_DECR, key, 1)
@@ -77,6 +81,8 @@ fn main() -> io::Result<()> {
             let keys: Vec<_> = matches.values_of("key").unwrap().collect();
             keys::del_exist(&client, &keys, false)
         }
+        ("flushall", Some(_matches)) => server::flush(&client, true),
+        ("flushdb", Some(_matches)) => server::flush(&client, false),
         ("incr", Some(matches)) => {
             let key = matches.value_of("key").unwrap();
             string::incrdecr(&client, OpType::STR_INCR, key, 1)

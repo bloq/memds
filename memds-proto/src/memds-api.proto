@@ -109,6 +109,9 @@ enum OpType {
   LIST_INDEX = 22;
   LIST_INFO = 23;
 
+  SRV_DBSIZE = 41;
+  SRV_FLUSHDB = 42;
+  SRV_FLUSHALL = 43;
   SRV_TIME = 40;
 
   STR_GET = 31;

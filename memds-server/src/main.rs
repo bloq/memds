@@ -73,6 +73,16 @@ impl Memds for MemdsService {
                     out_resp.results.push(op_res);
                 }
 
+                OpType::SRV_DBSIZE => {
+                    let op_res = server::dbsize(&mut db);
+                    out_resp.results.push(op_res);
+                }
+
+                OpType::SRV_FLUSHDB | OpType::SRV_FLUSHALL => {
+                    let op_res = server::flush(&mut db, op.otype);
+                    out_resp.results.push(op_res);
+                }
+
                 OpType::SRV_TIME => {
                     let op_res = server::time();
                     out_resp.results.push(op_res);

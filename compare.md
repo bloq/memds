@@ -68,11 +68,11 @@
  - [ ] CONFIG REWRITE
  - [ ] CONFIG SET
  - [ ] CONFIG RESETSTAT
- - [ ] DBSIZE
+ - [x] DBSIZE
  - [ ] DEBUG OBJECT
  - [ ] DEBUG SEGFAULT
- - [ ] FLUSHALL
- - [ ] FLUSHDB
+ - [x] FLUSHALL
+ - [x] FLUSHDB
  - [ ] INFO
  - [ ] LOLWUT
  - [ ] LASTSAVE
