@@ -17,8 +17,8 @@
  - [ ] PEXPIREAT
  - [ ] PTTL
  - [ ] RANDOMKEY
- - [ ] RENAME
- - [ ] RENAMENX
+ - [x] RENAME
+ - [x] RENAMENX
  - [ ] RESTORE
  - [ ] SORT
  - [ ] TOUCH

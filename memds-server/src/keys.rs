@@ -1,6 +1,8 @@
 use std::collections::HashMap;
 
-use memds_proto::memds_api::{AtomType, CountRes, KeyListOp, KeyOp, OpResult, OpType, TypeRes};
+use memds_proto::memds_api::{
+    AtomType, CountRes, KeyListOp, KeyOp, KeyRenameOp, OpResult, OpType, TypeRes,
+};
 use memds_proto::util::result_err;
 use memds_proto::Atom;
 
@@ -34,6 +36,33 @@ pub fn del_exist(db: &mut HashMap<Vec<u8>, Atom>, req: &KeyListOp, remove_item: 
     op_res
 }
 
+pub fn rename(db: &mut HashMap<Vec<u8>, Atom>, req: &KeyRenameOp) -> OpResult {
+    let old_key = req.get_old_key();
+    let new_key = req.get_new_key();
+
+    if req.create_excl && db.contains_key(new_key) {
+        return result_err(-412, "Precondition failed: key exists");
+    }
+
+    let value = {
+        let rm_res = db.remove(old_key);
+        if rm_res.is_none() {
+            return result_err(-404, "Not Found");
+        }
+
+        rm_res.unwrap()
+    };
+
+    db.insert(new_key.to_vec(), value);
+
+    let mut op_res = OpResult::new();
+
+    op_res.ok = true;
+    op_res.otype = OpType::KEYS_RENAME;
+
+    op_res
+}
+
 pub fn typ(db: &mut HashMap<Vec<u8>, Atom>, req: &KeyOp) -> OpResult {
     let key = req.get_key();
     let typ = match db.get(key) {
@@ -60,8 +89,8 @@ pub fn typ(db: &mut HashMap<Vec<u8>, Atom>, req: &KeyOp) -> OpResult {
 
 #[cfg(test)]
 mod tests {
-    use crate::keys;
-    use memds_proto::memds_api::{AtomType, KeyListOp, KeyOp, OpType};
+    use crate::{keys, string};
+    use memds_proto::memds_api::{AtomType, KeyListOp, KeyOp, KeyRenameOp, OpType, StrGetOp};
     use memds_proto::Atom;
     use std::collections::HashMap;
 
@@ -143,5 +172,42 @@ mod tests {
 
         let type_res = res.get_typ();
         assert_eq!(type_res.typ, AtomType::STRING);
+    }
+
+    #[test]
+    fn rename() {
+        let mut db = get_test_db();
+
+        // rename "foo" to "food"
+        let mut req = KeyRenameOp::new();
+        req.set_old_key(b"foo".to_vec());
+        req.set_new_key(b"food".to_vec());
+        req.create_excl = true;
+
+        let res = keys::rename(&mut db, &req);
+
+        assert_eq!(res.ok, true);
+        assert_eq!(res.otype, OpType::KEYS_RENAME);
+
+        // get "foo" == not found
+        let mut req = StrGetOp::new();
+        req.set_key(b"foo".to_vec());
+
+        let res = string::get(&mut db, &req, OpType::STR_GET);
+
+        assert_eq!(res.ok, false);
+        assert_eq!(res.otype, OpType::NOOP);
+        assert_eq!(res.err_code, -404);
+
+        // get "food" == found
+        let mut req = StrGetOp::new();
+        req.set_key(b"food".to_vec());
+
+        let res = string::get(&mut db, &req, OpType::STR_GET);
+
+        assert_eq!(res.ok, true);
+
+        let get_res = res.get_get();
+        assert_eq!(get_res.value, b"bar".to_vec());
     }
 }

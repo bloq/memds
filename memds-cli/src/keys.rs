@@ -42,6 +42,44 @@ pub fn del_exist(client: &MemdsClient, keys: &Vec<&str>, remove_it: bool) -> io:
     Ok(())
 }
 
+pub fn rename(
+    client: &MemdsClient,
+    old_key: &str,
+    new_key: &str,
+    create_excl: bool,
+) -> io::Result<()> {
+    let mut key_req = KeyRenameOp::new();
+    key_req.set_old_key(old_key.as_bytes().to_vec());
+    key_req.set_new_key(new_key.as_bytes().to_vec());
+    key_req.create_excl = create_excl;
+
+    let mut op = Operation::new();
+    op.otype = OpType::KEYS_RENAME;
+    op.set_rename(key_req);
+
+    let mut req = RequestMsg::new();
+    req.ops.push(op);
+
+    let resp = util::rpc_exec(&client, &req)?;
+
+    if !resp.ok {
+        let msg = format!("Batch failure {}: {}", resp.err_code, resp.err_message);
+        return Err(Error::new(ErrorKind::Other, msg));
+    }
+
+    let results = resp.get_results();
+    assert!(results.len() == 1);
+
+    let result = &results[0];
+    if !result.ok {
+        let msg = format!("keys-rename: {}", result.err_message);
+        return Err(Error::new(ErrorKind::Other, msg));
+    }
+
+    println!("ok");
+    Ok(())
+}
+
 pub fn typ(client: &MemdsClient, key: &str) -> io::Result<()> {
     let mut key_req = KeyOp::new();
     key_req.set_key(key.as_bytes().to_vec());
@@ -96,6 +134,36 @@ pub mod args {
                     .help("Key to test")
                     .required(true)
                     .multiple(true),
+            )
+    }
+
+    pub fn rename() -> App<'static, 'static> {
+        SubCommand::with_name("rename")
+            .about("Keys.Rename: Rename item key")
+            .arg(
+                Arg::with_name("old_key")
+                    .help("Source Key of item to rename")
+                    .required(true),
+            )
+            .arg(
+                Arg::with_name("new_key")
+                    .help("Destination Key of item")
+                    .required(true),
+            )
+    }
+
+    pub fn renamenx() -> App<'static, 'static> {
+        SubCommand::with_name("renamenx")
+            .about("Keys.RenameNX: Rename item key, iff new key does not exist")
+            .arg(
+                Arg::with_name("old_key")
+                    .help("Source Key of item to rename")
+                    .required(true),
+            )
+            .arg(
+                Arg::with_name("new_key")
+                    .help("Destination Key of item")
+                    .required(true),
             )
     }
 
