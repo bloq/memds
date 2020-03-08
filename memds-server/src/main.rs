@@ -94,13 +94,19 @@ impl Memds for MemdsService {
                     out_resp.results.push(op_res);
                 }
 
-                OpType::SET_INFO => {
+                OpType::SET_INFO | OpType::SET_MEMBERS => {
                     if !op.has_key() {
                         out_resp.results.push(result_err(-400, "Invalid op"));
                         continue;
                     }
                     let op_req = op.get_key();
-                    let op_res = set::info(&mut db, op_req);
+                    let op_res = {
+                        if op.otype == OpType::SET_INFO {
+                            set::info(&mut db, op_req)
+                        } else {
+                            set::members(&mut db, op_req)
+                        }
+                    };
                     out_resp.results.push(op_res);
                 }
 

@@ -43,6 +43,7 @@ fn main() -> io::Result<()> {
         .subcommand(server::args::time())
         .subcommand(set::args::sadd())
         .subcommand(set::args::scard())
+        .subcommand(set::args::smembers())
         .subcommand(set::args::srem())
         .subcommand(string::args::append())
         .subcommand(string::args::decr())
@@ -168,6 +169,10 @@ fn main() -> io::Result<()> {
         ("scard", Some(matches)) => {
             let key = matches.value_of("key").unwrap();
             set::info(&client, key)
+        }
+        ("smembers", Some(matches)) => {
+            let key = matches.value_of("key").unwrap();
+            set::members(&client, key)
         }
         ("srem", Some(matches)) => {
             let key = matches.value_of("key").unwrap();

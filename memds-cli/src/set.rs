@@ -1,4 +1,4 @@
-use std::io::{self, Error, ErrorKind};
+use std::io::{self, Error, ErrorKind, Write};
 
 use memds_proto::memds_api::*;
 use memds_proto::memds_api_grpc::MemdsClient;
@@ -80,6 +80,41 @@ pub fn add_del(
     Ok(())
 }
 
+pub fn members(client: &MemdsClient, key: &str) -> io::Result<()> {
+    let mut key_req = KeyOp::new();
+    key_req.set_key(key.as_bytes().to_vec());
+
+    let mut op = Operation::new();
+    op.otype = OpType::SET_MEMBERS;
+    op.set_key(key_req);
+
+    let mut req = RequestMsg::new();
+    req.ops.push(op);
+
+    let resp = util::rpc_exec(&client, &req)?;
+
+    if !resp.ok {
+        let msg = format!("Batch failure {}: {}", resp.err_code, resp.err_message);
+        return Err(Error::new(ErrorKind::Other, msg));
+    }
+
+    let results = resp.get_results();
+    assert!(results.len() == 1);
+
+    let result = &results[0];
+    if !result.ok {
+        let msg = format!("{}: {}", key, result.err_message);
+        return Err(Error::new(ErrorKind::Other, msg));
+    }
+
+    let list_res = results[0].get_list();
+    for element in list_res.elements.iter() {
+        io::stdout().write_all(element)?;
+        io::stdout().write_all(b"\n")?;
+    }
+    Ok(())
+}
+
 pub mod args {
     use clap::{App, Arg, SubCommand};
 
@@ -102,6 +137,16 @@ pub mod args {
     pub fn scard() -> App<'static, 'static> {
         SubCommand::with_name("scard")
             .about("Set.Card: Set metadata")
+            .arg(
+                Arg::with_name("key")
+                    .help("Key of set to query")
+                    .required(true),
+            )
+    }
+
+    pub fn smembers() -> App<'static, 'static> {
+        SubCommand::with_name("smembers")
+            .about("Set.Members: Query all Set members")
             .arg(
                 Arg::with_name("key")
                     .help("Key of set to query")

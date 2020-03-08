@@ -129,6 +129,7 @@ enum OpType {
   SET_ADD = 50;
   SET_INFO = 51;
   SET_DEL = 52;
+  SET_MEMBERS = 53;
 
   SRV_DBSIZE = 41;
   SRV_FLUSHDB = 42;

@@ -111,7 +111,7 @@
  - [ ] SINTER
  - [ ] SINTERSTORE
  - [ ] SISMEMBER
- - [ ] SMEMBERS
+ - [x] SMEMBERS
  - [ ] SMOVE
  - [ ] SPOP
  - [ ] SRANDMEMBER
