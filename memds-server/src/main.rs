@@ -84,13 +84,19 @@ impl Memds for MemdsService {
                     out_resp.results.push(op_res);
                 }
 
-                OpType::SET_ADD | OpType::SET_DEL => {
+                OpType::SET_ADD | OpType::SET_DEL | OpType::SET_ISMEMBER => {
                     if !op.has_keyed_list() {
                         out_resp.results.push(result_err(-400, "Invalid op"));
                         continue;
                     }
                     let op_req = op.get_keyed_list();
-                    let op_res = set::add_del(&mut db, op_req, op.otype);
+                    let op_res = {
+                        if op.otype == OpType::SET_ISMEMBER {
+                            set::is_member(&mut db, op_req)
+                        } else {
+                            set::add_del(&mut db, op_req, op.otype)
+                        }
+                    };
                     out_resp.results.push(op_res);
                 }
 

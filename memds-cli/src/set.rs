@@ -80,6 +80,41 @@ pub fn add_del(
     Ok(())
 }
 
+pub fn is_member(client: &MemdsClient, key: &str, elems: &Vec<&str>) -> io::Result<()> {
+    let mut op_req = KeyedListOp::new();
+    op_req.set_key(key.as_bytes().to_vec());
+    for elem in elems.iter() {
+        op_req.elements.push(elem.as_bytes().to_vec());
+    }
+
+    let mut op = Operation::new();
+    op.otype = OpType::SET_ISMEMBER;
+    op.set_keyed_list(op_req);
+
+    let mut req = RequestMsg::new();
+    req.ops.push(op);
+
+    let resp = util::rpc_exec(&client, &req)?;
+
+    if !resp.ok {
+        let msg = format!("Batch failure {}: {}", resp.err_code, resp.err_message);
+        return Err(Error::new(ErrorKind::Other, msg));
+    }
+
+    let results = resp.get_results();
+    assert_eq!(results.len(), 1);
+
+    let result = &results[0];
+    if !result.ok {
+        let msg = format!("{}: {}", key, result.err_message);
+        return Err(Error::new(ErrorKind::Other, msg));
+    }
+
+    let count_res = results[0].get_count();
+    println!("{}", count_res.n);
+    Ok(())
+}
+
 pub fn members(client: &MemdsClient, key: &str) -> io::Result<()> {
     let mut key_req = KeyOp::new();
     key_req.set_key(key.as_bytes().to_vec());
@@ -141,6 +176,22 @@ pub mod args {
                 Arg::with_name("key")
                     .help("Key of set to query")
                     .required(true),
+            )
+    }
+
+    pub fn sismember() -> App<'static, 'static> {
+        SubCommand::with_name("sismember")
+            .about("Set.IsMember: Test existence of items in a set")
+            .arg(
+                Arg::with_name("key")
+                    .help("Key of set to query")
+                    .required(true),
+            )
+            .arg(
+                Arg::with_name("element")
+                    .help("Value of item to test")
+                    .required(true)
+                    .multiple(true),
             )
     }
 
