@@ -24,6 +24,7 @@ use memds_proto::Atom;
 mod keys;
 mod list;
 mod server;
+mod set;
 mod string;
 
 const APPNAME: &'static str = "memds-server";
@@ -80,6 +81,38 @@ impl Memds for MemdsService {
                     }
                     let key_req = op.get_key();
                     let op_res = keys::typ(&mut db, key_req);
+                    out_resp.results.push(op_res);
+                }
+
+                OpType::SET_ADD | OpType::SET_DEL | OpType::SET_ISMEMBER => {
+                    if !op.has_keyed_list() {
+                        out_resp.results.push(result_err(-400, "Invalid op"));
+                        continue;
+                    }
+                    let op_req = op.get_keyed_list();
+                    let op_res = {
+                        if op.otype == OpType::SET_ISMEMBER {
+                            set::is_member(&mut db, op_req)
+                        } else {
+                            set::add_del(&mut db, op_req, op.otype)
+                        }
+                    };
+                    out_resp.results.push(op_res);
+                }
+
+                OpType::SET_INFO | OpType::SET_MEMBERS => {
+                    if !op.has_key() {
+                        out_resp.results.push(result_err(-400, "Invalid op"));
+                        continue;
+                    }
+                    let op_req = op.get_key();
+                    let op_res = {
+                        if op.otype == OpType::SET_INFO {
+                            set::info(&mut db, op_req)
+                        } else {
+                            set::members(&mut db, op_req)
+                        }
+                    };
                     out_resp.results.push(op_res);
                 }
 
