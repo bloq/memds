@@ -11,6 +11,7 @@ use std::sync::Arc;
 mod keys;
 mod list;
 mod server;
+mod set;
 mod string;
 mod util;
 
@@ -40,6 +41,8 @@ fn main() -> io::Result<()> {
         .subcommand(server::args::flushall())
         .subcommand(server::args::flushdb())
         .subcommand(server::args::time())
+        .subcommand(set::args::sadd())
+        .subcommand(set::args::scard())
         .subcommand(string::args::append())
         .subcommand(string::args::decr())
         .subcommand(string::args::decrby())
@@ -155,6 +158,15 @@ fn main() -> io::Result<()> {
             let key = matches.value_of("key").unwrap();
             let elems: Vec<_> = matches.values_of("element").unwrap().collect();
             list::push(&client, key, &elems, false, true)
+        }
+        ("sadd", Some(matches)) => {
+            let key = matches.value_of("key").unwrap();
+            let elems: Vec<_> = matches.values_of("element").unwrap().collect();
+            set::add(&client, key, &elems)
+        }
+        ("scard", Some(matches)) => {
+            let key = matches.value_of("key").unwrap();
+            set::info(&client, key)
         }
         ("set", Some(matches)) => {
             let key = matches.value_of("key").unwrap();

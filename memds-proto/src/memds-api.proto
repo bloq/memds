@@ -16,6 +16,7 @@ enum AtomType {
     NOTYPE = 0;
     STRING = 1;
     LIST = 2;
+    SET = 3;
 }
 
 message StrGetOp {
@@ -86,6 +87,15 @@ message ListRes {
   repeated bytes elements = 1; // list of elements returned
 }
 
+message SetAddOp {
+  bytes key = 1;	// key of set
+  repeated bytes elements = 4; // items to add to set
+}
+
+message SetInfoRes {
+  uint32 length = 1;
+}
+
 message CountRes {
   uint64 n = 1;		// many operations return a count, or length
 }
@@ -116,6 +126,9 @@ enum OpType {
   LIST_INDEX = 22;
   LIST_INFO = 23;
 
+  SET_ADD = 50;
+  SET_INFO = 51;
+
   SRV_DBSIZE = 41;
   SRV_FLUSHDB = 42;
   SRV_FLUSHALL = 43;
@@ -143,6 +156,7 @@ message Operation {
   KeyOp key = 16;
   KeyListOp key_list = 17;
   KeyRenameOp rename = 18;
+  SetAddOp set_add = 19;
 }
 
 message RequestMsg {
@@ -162,6 +176,7 @@ message OpResult {
   ListRes list = 13;
   CountRes count = 14;
   ListInfoRes list_info = 15;
+  SetInfoRes set_info = 18;
   TypeRes typ = 16;
   TimeRes srv_time = 17;
 }

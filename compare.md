@@ -102,6 +102,24 @@
  - [ ] LATENCY RESET
  - [ ] LATENCY HELP
 
+## Set operations
+
+ - [x] SADD
+ - [x] SCARD
+ - [ ] SDIFF
+ - [ ] SDIFFSTORE
+ - [ ] SINTER
+ - [ ] SINTERSTORE
+ - [ ] SISMEMBER
+ - [ ] SMEMBERS
+ - [ ] SMOVE
+ - [ ] SPOP
+ - [ ] SRANDMEMBER
+ - [ ] SREM
+ - [ ] SUNION
+ - [ ] SUNIONSTORE
+ - [ ] SSCAN
+
 ## String operations
 
  - [x] APPEND

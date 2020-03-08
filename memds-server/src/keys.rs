@@ -72,6 +72,7 @@ pub fn typ(db: &mut HashMap<Vec<u8>, Atom>, req: &KeyOp) -> OpResult {
         Some(atom) => match atom {
             Atom::String(_) => AtomType::STRING,
             Atom::List(_) => AtomType::LIST,
+            Atom::Set(_) => AtomType::SET,
         },
     };
 
