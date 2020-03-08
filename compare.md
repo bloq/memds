@@ -115,7 +115,7 @@
  - [ ] SMOVE
  - [ ] SPOP
  - [ ] SRANDMEMBER
- - [ ] SREM
+ - [x] SREM
  - [ ] SUNION
  - [ ] SUNIONSTORE
  - [ ] SSCAN

@@ -1,11 +1,11 @@
 use std::collections::HashMap;
 use std::collections::HashSet;
 
-use memds_proto::memds_api::{CountRes, KeyOp, OpResult, OpType, SetAddOp, SetInfoRes};
+use memds_proto::memds_api::{CountRes, KeyOp, KeyedListOp, OpResult, OpType, SetInfoRes};
 use memds_proto::util::result_err;
 use memds_proto::Atom;
 
-pub fn add(db: &mut HashMap<Vec<u8>, Atom>, req: &SetAddOp) -> OpResult {
+pub fn add_del(db: &mut HashMap<Vec<u8>, Atom>, req: &KeyedListOp, otype: OpType) -> OpResult {
     let st = {
         let key = req.get_key();
         match db.get_mut(key) {
@@ -28,20 +28,31 @@ pub fn add(db: &mut HashMap<Vec<u8>, Atom>, req: &SetAddOp) -> OpResult {
         }
     };
 
-    let mut n_added = 0;
+    let do_delete = match otype {
+        OpType::SET_DEL => true,
+        _ => false,
+    };
+
+    let mut n_updates = 0;
     for element in req.elements.iter() {
-        if st.insert(element.to_vec()) {
-            n_added += 1;
+        if do_delete {
+            if st.remove(element) {
+                n_updates += 1;
+            }
+        } else {
+            if st.insert(element.to_vec()) {
+                n_updates += 1;
+            }
         }
     }
 
     let mut count_res = CountRes::new();
-    count_res.n = n_added as u64;
+    count_res.n = n_updates as u64;
 
     let mut op_res = OpResult::new();
 
     op_res.ok = true;
-    op_res.otype = OpType::SET_ADD;
+    op_res.otype = otype;
     op_res.set_count(count_res);
 
     op_res
@@ -78,7 +89,7 @@ pub fn info(db: &mut HashMap<Vec<u8>, Atom>, req: &KeyOp) -> OpResult {
 #[cfg(test)]
 mod tests {
     use crate::set;
-    use memds_proto::memds_api::{KeyOp, OpType, SetAddOp};
+    use memds_proto::memds_api::{KeyOp, KeyedListOp, OpType};
     use memds_proto::Atom;
     use std::collections::HashMap;
 
@@ -92,17 +103,17 @@ mod tests {
     }
 
     #[test]
-    fn basic() {
+    fn add() {
         let mut db = get_test_db();
 
         // add one,two,two == set(one,two)
-        let mut req = SetAddOp::new();
+        let mut req = KeyedListOp::new();
         req.set_key(b"a_set".to_vec());
         req.elements.push(b"one".to_vec());
         req.elements.push(b"two".to_vec());
         req.elements.push(b"two".to_vec());
 
-        let res = set::add(&mut db, &req);
+        let res = set::add_del(&mut db, &req, OpType::SET_ADD);
 
         assert_eq!(res.ok, true);
         assert_eq!(res.otype, OpType::SET_ADD);
@@ -122,5 +133,52 @@ mod tests {
 
         let info_res = res.get_set_info();
         assert_eq!(info_res.length, 2);
+    }
+
+    #[test]
+    fn del() {
+        let mut db = get_test_db();
+
+        // add one,two,two == set(one,two)
+        let mut req = KeyedListOp::new();
+        req.set_key(b"a_set".to_vec());
+        req.elements.push(b"one".to_vec());
+        req.elements.push(b"two".to_vec());
+        req.elements.push(b"two".to_vec());
+
+        let res = set::add_del(&mut db, &req, OpType::SET_ADD);
+
+        assert_eq!(res.ok, true);
+        assert_eq!(res.otype, OpType::SET_ADD);
+        assert!(res.has_count());
+
+        let count_res = res.get_count();
+        assert_eq!(count_res.n, 2);
+
+        // del one == set(two)
+        let mut req = KeyedListOp::new();
+        req.set_key(b"a_set".to_vec());
+        req.elements.push(b"one".to_vec());
+
+        let res = set::add_del(&mut db, &req, OpType::SET_DEL);
+
+        assert_eq!(res.ok, true);
+        assert_eq!(res.otype, OpType::SET_DEL);
+        assert!(res.has_count());
+
+        let count_res = res.get_count();
+        assert_eq!(count_res.n, 1);
+
+        // get set info, verify count again
+        let mut req = KeyOp::new();
+        req.set_key(b"a_set".to_vec());
+
+        let res = set::info(&mut db, &req);
+        assert_eq!(res.ok, true);
+        assert_eq!(res.otype, OpType::SET_INFO);
+        assert!(res.has_set_info());
+
+        let info_res = res.get_set_info();
+        assert_eq!(info_res.length, 1);
     }
 }

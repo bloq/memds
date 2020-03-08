@@ -87,9 +87,9 @@ message ListRes {
   repeated bytes elements = 1; // list of elements returned
 }
 
-message SetAddOp {
-  bytes key = 1;	// key of set
-  repeated bytes elements = 4; // items to add to set
+message KeyedListOp {
+  bytes key = 1;		// key of set
+  repeated bytes elements = 4;	// items to query or update within key
 }
 
 message SetInfoRes {
@@ -128,6 +128,7 @@ enum OpType {
 
   SET_ADD = 50;
   SET_INFO = 51;
+  SET_DEL = 52;
 
   SRV_DBSIZE = 41;
   SRV_FLUSHDB = 42;
@@ -156,7 +157,7 @@ message Operation {
   KeyOp key = 16;
   KeyListOp key_list = 17;
   KeyRenameOp rename = 18;
-  SetAddOp set_add = 19;
+  KeyedListOp keyed_list = 19;
 }
 
 message RequestMsg {

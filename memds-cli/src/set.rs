@@ -37,16 +37,24 @@ pub fn info(client: &MemdsClient, key: &str) -> io::Result<()> {
     Ok(())
 }
 
-pub fn add(client: &MemdsClient, key: &str, elems: &Vec<&str>) -> io::Result<()> {
-    let mut op_req = SetAddOp::new();
+pub fn add_del(
+    client: &MemdsClient,
+    key: &str,
+    elems: &Vec<&str>,
+    do_delete: bool,
+) -> io::Result<()> {
+    let mut op_req = KeyedListOp::new();
     op_req.set_key(key.as_bytes().to_vec());
     for elem in elems.iter() {
         op_req.elements.push(elem.as_bytes().to_vec());
     }
 
     let mut op = Operation::new();
-    op.otype = OpType::SET_ADD;
-    op.set_set_add(op_req);
+    op.otype = match do_delete {
+        true => OpType::SET_DEL,
+        false => OpType::SET_ADD,
+    };
+    op.set_keyed_list(op_req);
 
     let mut req = RequestMsg::new();
     req.ops.push(op);
@@ -77,7 +85,7 @@ pub mod args {
 
     pub fn sadd() -> App<'static, 'static> {
         SubCommand::with_name("sadd")
-            .about("Set.Add: Store item in set")
+            .about("Set.Add: Store items in set")
             .arg(
                 Arg::with_name("key")
                     .help("Key of set to store")
@@ -98,6 +106,22 @@ pub mod args {
                 Arg::with_name("key")
                     .help("Key of set to query")
                     .required(true),
+            )
+    }
+
+    pub fn srem() -> App<'static, 'static> {
+        SubCommand::with_name("srem")
+            .about("Set.Remove: Remove items from set")
+            .arg(
+                Arg::with_name("key")
+                    .help("Key of set to update")
+                    .required(true),
+            )
+            .arg(
+                Arg::with_name("element")
+                    .help("Value of item to remove")
+                    .required(true)
+                    .multiple(true),
             )
     }
 }

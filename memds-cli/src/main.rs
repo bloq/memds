@@ -43,6 +43,7 @@ fn main() -> io::Result<()> {
         .subcommand(server::args::time())
         .subcommand(set::args::sadd())
         .subcommand(set::args::scard())
+        .subcommand(set::args::srem())
         .subcommand(string::args::append())
         .subcommand(string::args::decr())
         .subcommand(string::args::decrby())
@@ -162,11 +163,16 @@ fn main() -> io::Result<()> {
         ("sadd", Some(matches)) => {
             let key = matches.value_of("key").unwrap();
             let elems: Vec<_> = matches.values_of("element").unwrap().collect();
-            set::add(&client, key, &elems)
+            set::add_del(&client, key, &elems, false)
         }
         ("scard", Some(matches)) => {
             let key = matches.value_of("key").unwrap();
             set::info(&client, key)
+        }
+        ("srem", Some(matches)) => {
+            let key = matches.value_of("key").unwrap();
+            let elems: Vec<_> = matches.values_of("element").unwrap().collect();
+            set::add_del(&client, key, &elems, true)
         }
         ("set", Some(matches)) => {
             let key = matches.value_of("key").unwrap();
