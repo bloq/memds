@@ -7,6 +7,7 @@ use memds_proto::util::result_err;
 use memds_proto::Atom;
 
 pub fn info(db: &mut HashMap<Vec<u8>, Atom>, req: &KeyOp) -> OpResult {
+    // get list to query
     let l = {
         let key = req.get_key();
         match db.get_mut(key) {
@@ -22,9 +23,13 @@ pub fn info(db: &mut HashMap<Vec<u8>, Atom>, req: &KeyOp) -> OpResult {
         }
     };
 
+    // return list info (aka list metadata)
+    // at present there is only item count (list length),
+    // but more metadata is presumed in the future.
     let mut info_res = ListInfoRes::new();
     info_res.length = l.len() as u32;
 
+    // standard operation result assignment & final return
     let mut op_res = OpResult::new();
 
     op_res.ok = true;
@@ -35,6 +40,7 @@ pub fn info(db: &mut HashMap<Vec<u8>, Atom>, req: &KeyOp) -> OpResult {
 }
 
 pub fn push(db: &mut HashMap<Vec<u8>, Atom>, req: &ListPushOp) -> OpResult {
+    // get list to mutate
     let l = {
         let key = req.get_key();
         match db.get_mut(key) {
@@ -60,6 +66,7 @@ pub fn push(db: &mut HashMap<Vec<u8>, Atom>, req: &ListPushOp) -> OpResult {
         }
     };
 
+    // insert, at head or tail as requested
     if req.at_head {
         for element in req.elements.iter() {
             l.insert(0, element.to_vec());
@@ -70,9 +77,11 @@ pub fn push(db: &mut HashMap<Vec<u8>, Atom>, req: &ListPushOp) -> OpResult {
         }
     }
 
+    // return new list length, after mutations (if any)
     let mut count_res = CountRes::new();
     count_res.n = l.len() as u64;
 
+    // standard operation result assignment & final return
     let mut op_res = OpResult::new();
 
     op_res.ok = true;
@@ -83,6 +92,7 @@ pub fn push(db: &mut HashMap<Vec<u8>, Atom>, req: &ListPushOp) -> OpResult {
 }
 
 pub fn pop(db: &mut HashMap<Vec<u8>, Atom>, req: &ListPopOp) -> OpResult {
+    // get list to mutate
     let l = {
         let key = req.get_key();
         match db.get_mut(key) {
@@ -100,6 +110,7 @@ pub fn pop(db: &mut HashMap<Vec<u8>, Atom>, req: &ListPopOp) -> OpResult {
 
     let mut list_res = ListRes::new();
 
+    // remove, and return removed values, at head or tail as requested
     if l.len() > 0 {
         let value = {
             if req.at_head {
@@ -112,6 +123,7 @@ pub fn pop(db: &mut HashMap<Vec<u8>, Atom>, req: &ListPopOp) -> OpResult {
         list_res.elements.push(value);
     }
 
+    // standard operation result assignment & final return
     let mut op_res = OpResult::new();
 
     op_res.ok = true;
@@ -122,10 +134,14 @@ pub fn pop(db: &mut HashMap<Vec<u8>, Atom>, req: &ListPopOp) -> OpResult {
 }
 
 pub fn index(db: &mut HashMap<Vec<u8>, Atom>, req: &ListIndexOp) -> OpResult {
+    // get list to query
     match db.get(req.get_key()) {
         Some(atom) => match atom {
             Atom::List(l) => {
                 let mut index_res = ListRes::new();
+
+                // get absolute pos, calculating from absolute (non-neg)
+                // or relative (negative) supplied positions.
                 let pos = {
                     if req.index < 0 {
                         let tmp: i64 = (l.len() as i64) + req.index as i64;
@@ -139,10 +155,12 @@ pub fn index(db: &mut HashMap<Vec<u8>, Atom>, req: &ListIndexOp) -> OpResult {
                     }
                 };
 
+                // return element, if position valid
                 if pos < l.len() {
                     index_res.elements.push(l[pos].clone());
                 }
 
+                // standard operation result assignment & final return
                 let mut op_res = OpResult::new();
                 op_res.ok = true;
                 op_res.otype = OpType::LIST_INDEX;
