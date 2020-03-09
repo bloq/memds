@@ -203,6 +203,54 @@ pub fn diff(db: &mut HashMap<Vec<u8>, Atom>, req: &CmpStoreOp) -> OpResult {
     op_res
 }
 
+pub fn union(db: &mut HashMap<Vec<u8>, Atom>, req: &CmpStoreOp) -> OpResult {
+    if req.keys.len() < 1 {
+        return result_err(-400, "at least one key required");
+    }
+
+    // iterate through list of provided keys
+    // inserting into result union
+    let mut diff_result = HashSet::new();
+    for key in req.keys.iter() {
+        match db.get(key) {
+            Some(Atom::Set(st)) => {
+                for elem in st.iter() {
+                    diff_result.insert(elem.clone());
+                }
+            }
+            _ => {}
+        }
+    }
+
+    // standard operation result assignment
+    let mut op_res = OpResult::new();
+
+    op_res.ok = true;
+    op_res.otype = OpType::SET_UNION;
+
+    let do_store = req.store_key.len() > 0;
+
+    // if storing in db, do so + return count stored
+    if do_store {
+        let n_results = diff_result.len() as u64;
+        db.insert(req.store_key.to_vec(), Atom::Set(diff_result));
+
+        let mut count_res = CountRes::new();
+        count_res.n = n_results;
+        op_res.set_count(count_res);
+
+    // otherwise return calculated result directly to client
+    } else {
+        let mut list_res = ListRes::new();
+        for elem in diff_result.iter() {
+            list_res.elements.push(elem.to_vec());
+        }
+        op_res.set_list(list_res);
+    }
+
+    op_res
+}
+
 pub fn is_member(db: &mut HashMap<Vec<u8>, Atom>, req: &KeyedListOp) -> OpResult {
     // get set to query
     let st = {
@@ -448,5 +496,31 @@ mod tests {
         assert_eq!(list_res.elements.len(), 2);
         assert_eq!(list_res.elements[0], b"b");
         assert_eq!(list_res.elements[1], b"d");
+    }
+
+    #[test]
+    fn union() {
+        let mut db = get_test_db();
+
+        // add one,two,two == set(one,two)
+        let mut req = CmpStoreOp::new();
+        req.keys.push(b"set1".to_vec());
+        req.keys.push(b"set2".to_vec());
+        req.keys.push(b"set3".to_vec());
+
+        let mut res = set::union(&mut db, &req);
+
+        assert_eq!(res.ok, true);
+        assert_eq!(res.otype, OpType::SET_UNION);
+        assert!(res.has_list());
+
+        let list_res = res.mut_list();
+        list_res.elements.sort();
+        assert_eq!(list_res.elements.len(), 5);
+        assert_eq!(list_res.elements[0], b"a");
+        assert_eq!(list_res.elements[1], b"b");
+        assert_eq!(list_res.elements[2], b"c");
+        assert_eq!(list_res.elements[3], b"d");
+        assert_eq!(list_res.elements[4], b"e");
     }
 }

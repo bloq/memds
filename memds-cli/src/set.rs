@@ -80,7 +80,12 @@ pub fn add_del(
     Ok(())
 }
 
-pub fn diff(client: &MemdsClient, keys: &Vec<&str>, store_key: &str) -> io::Result<()> {
+pub fn diff_union(
+    client: &MemdsClient,
+    keys: &Vec<&str>,
+    store_key: &str,
+    otype: OpType,
+) -> io::Result<()> {
     let mut op_req = CmpStoreOp::new();
     for key in keys.iter() {
         op_req.keys.push(key.as_bytes().to_vec());
@@ -95,7 +100,7 @@ pub fn diff(client: &MemdsClient, keys: &Vec<&str>, store_key: &str) -> io::Resu
     };
 
     let mut op = Operation::new();
-    op.otype = OpType::SET_DIFF;
+    op.otype = otype;
     op.set_cmp_stor(op_req);
 
     let mut req = RequestMsg::new();
@@ -303,6 +308,41 @@ pub mod args {
                 Arg::with_name("element")
                     .help("Value of item to remove")
                     .required(true)
+                    .multiple(true),
+            )
+    }
+
+    pub fn sunion() -> App<'static, 'static> {
+        SubCommand::with_name("sunion")
+            .about("Set.Union: Union sets")
+            .arg(
+                Arg::with_name("key1")
+                    .help("1st Set for union")
+                    .required(true),
+            )
+            .arg(
+                Arg::with_name("keys")
+                    .help("List of unioned sets")
+                    .multiple(true),
+            )
+    }
+
+    pub fn sunionstore() -> App<'static, 'static> {
+        SubCommand::with_name("sunionstore")
+            .about("Set.UnionStore: Union sets, and store result")
+            .arg(
+                Arg::with_name("destination")
+                    .help("Set receiving union results")
+                    .required(true),
+            )
+            .arg(
+                Arg::with_name("key1")
+                    .help("1st Set for union")
+                    .required(true),
+            )
+            .arg(
+                Arg::with_name("keys")
+                    .help("List of unioned sets")
                     .multiple(true),
             )
     }
