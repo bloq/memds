@@ -43,6 +43,8 @@ fn main() -> io::Result<()> {
         .subcommand(server::args::time())
         .subcommand(set::args::sadd())
         .subcommand(set::args::scard())
+        .subcommand(set::args::sdiff())
+        .subcommand(set::args::sdiffstore())
         .subcommand(set::args::sismember())
         .subcommand(set::args::smembers())
         .subcommand(set::args::srem())
@@ -170,6 +172,20 @@ fn main() -> io::Result<()> {
         ("scard", Some(matches)) => {
             let key = matches.value_of("key").unwrap();
             set::info(&client, key)
+        }
+        ("sdiff", Some(matches)) => {
+            let key1 = matches.value_of("key1").unwrap();
+            let mut keys: Vec<_> = matches.values_of("keys").unwrap().collect();
+            keys.insert(0, key1);
+            let empty = String::from("");
+            set::diff(&client, &keys, &empty)
+        }
+        ("sdiffstore", Some(matches)) => {
+            let store_key = matches.value_of("destination").unwrap();
+            let key1 = matches.value_of("key1").unwrap();
+            let mut keys: Vec<_> = matches.values_of("keys").unwrap().collect();
+            keys.insert(0, key1);
+            set::diff(&client, &keys, &store_key)
         }
         ("sismember", Some(matches)) => {
             let key = matches.value_of("key").unwrap();

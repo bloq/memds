@@ -106,11 +106,11 @@
 
  - [x] SADD
  - [x] SCARD
- - [ ] SDIFF
- - [ ] SDIFFSTORE
+ - [x] SDIFF
+ - [x] SDIFFSTORE
  - [ ] SINTER
  - [ ] SINTERSTORE
- - [ ] SISMEMBER
+ - [x] SISMEMBER
  - [x] SMEMBERS
  - [ ] SMOVE
  - [ ] SPOP
