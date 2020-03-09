@@ -100,6 +100,16 @@ impl Memds for MemdsService {
                     out_resp.results.push(op_res);
                 }
 
+                OpType::SET_DIFF => {
+                    if !op.has_cmp_stor() {
+                        out_resp.results.push(result_err(-400, "Invalid op"));
+                        continue;
+                    }
+                    let op_req = op.get_cmp_stor();
+                    let op_res = set::diff(&mut db, op_req);
+                    out_resp.results.push(op_res);
+                }
+
                 OpType::SET_INFO | OpType::SET_MEMBERS => {
                     if !op.has_key() {
                         out_resp.results.push(result_err(-400, "Invalid op"));

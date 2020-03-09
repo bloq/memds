@@ -1,7 +1,9 @@
 use std::collections::HashMap;
 use std::collections::HashSet;
 
-use memds_proto::memds_api::{CountRes, KeyOp, KeyedListOp, ListRes, OpResult, OpType, SetInfoRes};
+use memds_proto::memds_api::{
+    CmpStoreOp, CountRes, KeyOp, KeyedListOp, ListRes, OpResult, OpType, SetInfoRes,
+};
 use memds_proto::util::result_err;
 use memds_proto::Atom;
 
@@ -116,6 +118,64 @@ pub fn members(db: &mut HashMap<Vec<u8>, Atom>, req: &KeyOp) -> OpResult {
     op_res
 }
 
+pub fn diff(db: &mut HashMap<Vec<u8>, Atom>, req: &CmpStoreOp) -> OpResult {
+    if req.keys.len() < 1 {
+        return result_err(-400, "at least one key required");
+    }
+
+    let mut diff_result = HashSet::new();
+    let mut first_key = true;
+    for key in req.keys.iter() {
+        if first_key {
+            first_key = false;
+
+            let atom_res = db.get(key);
+            match atom_res {
+                Some(Atom::Set(st)) => {
+                    diff_result = st.clone();
+                }
+                _ => {
+                    diff_result = HashSet::new();
+                }
+            }
+        } else {
+            let atom_res = db.get(key);
+            let operand = match atom_res {
+                Some(Atom::Set(st)) => st.clone(),
+                _ => HashSet::new(),
+            };
+
+            for oper_elem in operand.iter() {
+                diff_result.remove(oper_elem);
+            }
+        }
+    }
+
+    let mut op_res = OpResult::new();
+
+    op_res.ok = true;
+    op_res.otype = OpType::SET_DIFF;
+
+    let do_store = req.store_key.len() > 0;
+
+    if do_store {
+        let n_results = diff_result.len() as u64;
+        db.insert(req.store_key.to_vec(), Atom::Set(diff_result));
+
+        let mut count_res = CountRes::new();
+        count_res.n = n_results;
+        op_res.set_count(count_res);
+    } else {
+        let mut list_res = ListRes::new();
+        for elem in diff_result.iter() {
+            list_res.elements.push(elem.to_vec());
+        }
+        op_res.set_list(list_res);
+    }
+
+    op_res
+}
+
 pub fn is_member(db: &mut HashMap<Vec<u8>, Atom>, req: &KeyedListOp) -> OpResult {
     let st = {
         let key = req.get_key();
@@ -154,15 +214,33 @@ pub fn is_member(db: &mut HashMap<Vec<u8>, Atom>, req: &KeyedListOp) -> OpResult
 #[cfg(test)]
 mod tests {
     use crate::set;
-    use memds_proto::memds_api::{KeyOp, KeyedListOp, OpType};
+    use memds_proto::memds_api::{CmpStoreOp, KeyOp, KeyedListOp, OpType};
     use memds_proto::Atom;
     use std::collections::HashMap;
+    use std::collections::HashSet;
 
     fn get_test_db() -> HashMap<Vec<u8>, Atom> {
         let mut db: HashMap<Vec<u8>, Atom> = HashMap::new();
         db.insert(b"foo".to_vec(), Atom::String(b"bar".to_vec()));
         db.insert(b"name".to_vec(), Atom::String(b"Jane Doe".to_vec()));
         db.insert(b"age".to_vec(), Atom::String(b"25".to_vec()));
+
+        let mut st = HashSet::new();
+        st.insert(b"a".to_vec());
+        st.insert(b"b".to_vec());
+        st.insert(b"c".to_vec());
+        st.insert(b"d".to_vec());
+        db.insert(b"set1".to_vec(), Atom::Set(st));
+
+        let mut st = HashSet::new();
+        st.insert(b"c".to_vec());
+        db.insert(b"set2".to_vec(), Atom::Set(st));
+
+        let mut st = HashSet::new();
+        st.insert(b"a".to_vec());
+        st.insert(b"c".to_vec());
+        st.insert(b"e".to_vec());
+        db.insert(b"set3".to_vec(), Atom::Set(st));
 
         db
     }
@@ -316,5 +394,28 @@ mod tests {
 
         let count_res = res.get_count();
         assert_eq!(count_res.n, 1);
+    }
+
+    #[test]
+    fn diff() {
+        let mut db = get_test_db();
+
+        // add one,two,two == set(one,two)
+        let mut req = CmpStoreOp::new();
+        req.keys.push(b"set1".to_vec());
+        req.keys.push(b"set2".to_vec());
+        req.keys.push(b"set3".to_vec());
+
+        let mut res = set::diff(&mut db, &req);
+
+        assert_eq!(res.ok, true);
+        assert_eq!(res.otype, OpType::SET_DIFF);
+        assert!(res.has_list());
+
+        let list_res = res.mut_list();
+        list_res.elements.sort();
+        assert_eq!(list_res.elements.len(), 2);
+        assert_eq!(list_res.elements[0], b"b");
+        assert_eq!(list_res.elements[1], b"d");
     }
 }

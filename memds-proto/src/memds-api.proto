@@ -53,7 +53,7 @@ message NumRes {
 }
 
 message KeyOp {
-  bytes key = 1;
+  bytes key = 1;	// key upon which to query/update
 }
 
 message KeyRenameOp {
@@ -96,6 +96,12 @@ message SetInfoRes {
   uint32 length = 1;
 }
 
+message CmpStoreOp {
+  repeated bytes keys = 1;	// keys upon which to operate
+  bytes store_key = 2;		// if empty, return results.
+  				// if non-empty, store results in this key.
+}
+
 message CountRes {
   uint64 n = 1;		// many operations return a count, or length
 }
@@ -129,6 +135,7 @@ enum OpType {
   SET_ADD = 50;
   SET_INFO = 51;
   SET_DEL = 52;
+  SET_DIFF = 55;
   SET_MEMBERS = 53;
   SET_ISMEMBER = 54;
 
@@ -160,6 +167,7 @@ message Operation {
   KeyListOp key_list = 17;
   KeyRenameOp rename = 18;
   KeyedListOp keyed_list = 19;
+  CmpStoreOp cmp_stor = 20;
 }
 
 message RequestMsg {
