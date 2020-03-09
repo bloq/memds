@@ -48,6 +48,8 @@ fn main() -> io::Result<()> {
         .subcommand(set::args::sismember())
         .subcommand(set::args::smembers())
         .subcommand(set::args::srem())
+        .subcommand(set::args::sunion())
+        .subcommand(set::args::sunionstore())
         .subcommand(string::args::append())
         .subcommand(string::args::decr())
         .subcommand(string::args::decrby())
@@ -178,14 +180,14 @@ fn main() -> io::Result<()> {
             let mut keys: Vec<_> = matches.values_of("keys").unwrap().collect();
             keys.insert(0, key1);
             let empty = String::from("");
-            set::diff(&client, &keys, &empty)
+            set::diff_union(&client, &keys, &empty, OpType::SET_DIFF)
         }
         ("sdiffstore", Some(matches)) => {
             let store_key = matches.value_of("destination").unwrap();
             let key1 = matches.value_of("key1").unwrap();
             let mut keys: Vec<_> = matches.values_of("keys").unwrap().collect();
             keys.insert(0, key1);
-            set::diff(&client, &keys, &store_key)
+            set::diff_union(&client, &keys, &store_key, OpType::SET_DIFF)
         }
         ("sismember", Some(matches)) => {
             let key = matches.value_of("key").unwrap();
@@ -214,6 +216,20 @@ fn main() -> io::Result<()> {
         ("strlen", Some(matches)) => {
             let key = matches.value_of("key").unwrap();
             string::strlen(&client, key)
+        }
+        ("sunion", Some(matches)) => {
+            let key1 = matches.value_of("key1").unwrap();
+            let mut keys: Vec<_> = matches.values_of("keys").unwrap().collect();
+            keys.insert(0, key1);
+            let empty = String::from("");
+            set::diff_union(&client, &keys, &empty, OpType::SET_UNION)
+        }
+        ("sunionstore", Some(matches)) => {
+            let store_key = matches.value_of("destination").unwrap();
+            let key1 = matches.value_of("key1").unwrap();
+            let mut keys: Vec<_> = matches.values_of("keys").unwrap().collect();
+            keys.insert(0, key1);
+            set::diff_union(&client, &keys, &store_key, OpType::SET_UNION)
         }
         ("time", Some(_matches)) => server::time(&client),
         ("type", Some(matches)) => {

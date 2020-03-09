@@ -11,9 +11,11 @@ fn systime() -> Duration {
 }
 
 pub fn dbsize(db: &mut HashMap<Vec<u8>, Atom>) -> OpResult {
+    // query db item count
     let mut info_res = CountRes::new();
     info_res.n = db.len() as u64;
 
+    // standard operation result assignment & final return
     let mut op_res = OpResult::new();
 
     op_res.ok = true;
@@ -24,8 +26,11 @@ pub fn dbsize(db: &mut HashMap<Vec<u8>, Atom>) -> OpResult {
 }
 
 pub fn flush(db: &mut HashMap<Vec<u8>, Atom>, otype: OpType) -> OpResult {
+    // clear entire db; we only have 1 db right now,
+    // making flush [one] db operation equivalent to flush-all-dbs.
     db.clear();
 
+    // standard operation result assignment & final return
     let mut op_res = OpResult::new();
 
     op_res.ok = true;
@@ -35,12 +40,15 @@ pub fn flush(db: &mut HashMap<Vec<u8>, Atom>, otype: OpType) -> OpResult {
 }
 
 pub fn time() -> OpResult {
+    // query system time
     let now = systime();
 
+    // calculate secs & nanosecs
     let mut time_res = TimeRes::new();
     time_res.secs = now.as_secs();
     time_res.nanosecs = now.subsec_nanos();
 
+    // standard operation result assignment & final return
     let mut op_res = OpResult::new();
     op_res.ok = true;
     op_res.otype = OpType::SRV_TIME;

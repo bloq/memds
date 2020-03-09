@@ -116,8 +116,8 @@
  - [ ] SPOP
  - [ ] SRANDMEMBER
  - [x] SREM
- - [ ] SUNION
- - [ ] SUNIONSTORE
+ - [x] SUNION
+ - [x] SUNIONSTORE
  - [ ] SSCAN
 
 ## String operations

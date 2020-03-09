@@ -9,11 +9,15 @@ use memds_proto::Atom;
 pub fn del_exist(db: &mut HashMap<Vec<u8>, Atom>, req: &KeyListOp, remove_item: bool) -> OpResult {
     let mut count: u64 = 0;
 
+    // iterate through provided key list
     for key in req.get_keys().iter() {
+        // if we're deleting, attempt to remove item
         if remove_item {
             if db.remove(key).is_some() {
                 count += 1;
             }
+
+        // if we're testing existence, do so
         } else {
             if db.contains_key(key) {
                 count += 1;
@@ -21,9 +25,11 @@ pub fn del_exist(db: &mut HashMap<Vec<u8>, Atom>, req: &KeyListOp, remove_item: 
         }
     }
 
+    // return number of keys matched (== operations successful, for delete)
     let mut count_res = CountRes::new();
     count_res.n = count;
 
+    // standard operation result assignment & final return
     let mut op_res = OpResult::new();
 
     op_res.ok = true;
@@ -44,6 +50,7 @@ pub fn rename(db: &mut HashMap<Vec<u8>, Atom>, req: &KeyRenameOp) -> OpResult {
         return result_err(-412, "Precondition failed: key exists");
     }
 
+    // remove value stored at old key
     let value = {
         let rm_res = db.remove(old_key);
         if rm_res.is_none() {
@@ -53,8 +60,10 @@ pub fn rename(db: &mut HashMap<Vec<u8>, Atom>, req: &KeyRenameOp) -> OpResult {
         rm_res.unwrap()
     };
 
+    // store value at new key
     db.insert(new_key.to_vec(), value);
 
+    // standard operation result assignment & final return
     let mut op_res = OpResult::new();
 
     op_res.ok = true;
@@ -65,10 +74,14 @@ pub fn rename(db: &mut HashMap<Vec<u8>, Atom>, req: &KeyRenameOp) -> OpResult {
 
 pub fn typ(db: &mut HashMap<Vec<u8>, Atom>, req: &KeyOp) -> OpResult {
     let key = req.get_key();
+
+    // get value stored at key
     let typ = match db.get(key) {
         None => {
             return result_err(-404, "Not Found");
         }
+
+        // match type
         Some(atom) => match atom {
             Atom::String(_) => AtomType::STRING,
             Atom::List(_) => AtomType::LIST,
@@ -76,9 +89,11 @@ pub fn typ(db: &mut HashMap<Vec<u8>, Atom>, req: &KeyOp) -> OpResult {
         },
     };
 
+    // return type
     let mut type_res = TypeRes::new();
     type_res.typ = typ;
 
+    // standard operation result assignment & final return
     let mut op_res = OpResult::new();
 
     op_res.ok = true;

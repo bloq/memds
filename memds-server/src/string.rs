@@ -67,6 +67,7 @@ pub fn incrdecr(db: &mut HashMap<Vec<u8>, Atom>, otype: OpType, req: &NumOp) -> 
     let mut num_res = NumRes::new();
     num_res.old_value = old_val;
 
+    // standard operation result assignment & final return
     let mut op_res = OpResult::new();
     op_res.ok = true;
     op_res.otype = otype;
@@ -76,6 +77,8 @@ pub fn incrdecr(db: &mut HashMap<Vec<u8>, Atom>, otype: OpType, req: &NumOp) -> 
 }
 
 fn str_index(len: i64, pos_requested: i64) -> usize {
+    // non-negative positions are absolute.
+    // negative positions relative to end of buffer
     let mut pos = {
         if pos_requested >= 0 {
             pos_requested
@@ -83,6 +86,8 @@ fn str_index(len: i64, pos_requested: i64) -> usize {
             len + pos_requested + 1
         }
     };
+
+    // clamp values to unsigned buffer bounds
     if pos < 0 {
         pos = 0;
     } else if pos > len {
@@ -103,6 +108,7 @@ fn sanitize_range(in_start: i32, in_end: i32, value_len: i32) -> (usize, usize) 
 }
 
 pub fn get(db: &mut HashMap<Vec<u8>, Atom>, req: &StrGetOp, otype: OpType) -> OpResult {
+    // get item by key
     match db.get(req.get_key()) {
         Some(atom) => match atom {
             Atom::String(value) => {
@@ -118,6 +124,7 @@ pub fn get(db: &mut HashMap<Vec<u8>, Atom>, req: &StrGetOp, otype: OpType) -> Op
                     get_res.set_value(value.to_vec());
                 }
 
+                // standard operation result assignment & final return
                 let mut op_res = OpResult::new();
                 op_res.ok = true;
                 op_res.otype = otype;
@@ -133,12 +140,16 @@ pub fn get(db: &mut HashMap<Vec<u8>, Atom>, req: &StrGetOp, otype: OpType) -> Op
 
 pub fn set(db: &mut HashMap<Vec<u8>, Atom>, req: &StrSetOp) -> OpResult {
     let key = req.get_key();
+
+    // option test: create iff key does not exist
     if req.create_excl && db.contains_key(key) {
         return result_err(-412, "Precondition failed: key exists");
     }
 
+    // insert, and return previous item stored at key (if any)
     let previous = db.insert(key.to_vec(), Atom::String(req.get_value().to_vec()));
 
+    // if old-value requested, return it
     let mut set_res = StrSetRes::new();
     if req.return_old && previous.is_some() {
         let prev_atom = previous.unwrap();
@@ -148,6 +159,7 @@ pub fn set(db: &mut HashMap<Vec<u8>, Atom>, req: &StrSetOp) -> OpResult {
         }
     }
 
+    // standard operation result assignment & final return
     let mut op_res = OpResult::new();
     op_res.ok = true;
     op_res.otype = OpType::STR_SET;
@@ -179,7 +191,7 @@ pub fn append(db: &mut HashMap<Vec<u8>, Atom>, req: &StrSetOp) -> OpResult {
     value.extend_from_slice(req.get_value());
     db.insert(req.get_key().to_vec(), Atom::String(value));
 
-    // return success
+    // standard operation result assignment & final return
     let mut op_res = OpResult::new();
     op_res.ok = true;
     op_res.otype = OpType::STR_APPEND;

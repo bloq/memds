@@ -8,10 +8,22 @@ use memds_proto::util::result_err;
 use memds_proto::Atom;
 
 pub fn add_del(db: &mut HashMap<Vec<u8>, Atom>, req: &KeyedListOp, otype: OpType) -> OpResult {
+    let do_delete = match otype {
+        OpType::SET_DEL => true,
+        _ => false,
+    };
+
+    // get set to mutate.
     let st = {
         let key = req.get_key();
         match db.get_mut(key) {
             None => {
+                // if we're deleting, go no further
+                if do_delete {
+                    return result_err(-404, "Not Found");
+                }
+
+                // does not exist; create empty set
                 db.insert(key.to_vec(), Atom::Set(HashSet::new()));
                 match db.get_mut(key) {
                     None => unreachable!(),
@@ -21,6 +33,8 @@ pub fn add_del(db: &mut HashMap<Vec<u8>, Atom>, req: &KeyedListOp, otype: OpType
                     },
                 }
             }
+
+            // found the key.  grab ref.
             Some(atom) => match atom {
                 Atom::Set(st) => st,
                 _ => {
@@ -30,11 +44,7 @@ pub fn add_del(db: &mut HashMap<Vec<u8>, Atom>, req: &KeyedListOp, otype: OpType
         }
     };
 
-    let do_delete = match otype {
-        OpType::SET_DEL => true,
-        _ => false,
-    };
-
+    // iterate through each element in request, adding/deleting
     let mut n_updates = 0;
     for element in req.elements.iter() {
         if do_delete {
@@ -48,9 +58,11 @@ pub fn add_del(db: &mut HashMap<Vec<u8>, Atom>, req: &KeyedListOp, otype: OpType
         }
     }
 
+    // return number of updates (not number of elements)
     let mut count_res = CountRes::new();
     count_res.n = n_updates as u64;
 
+    // standard operation result assignment & final return
     let mut op_res = OpResult::new();
 
     op_res.ok = true;
@@ -61,6 +73,7 @@ pub fn add_del(db: &mut HashMap<Vec<u8>, Atom>, req: &KeyedListOp, otype: OpType
 }
 
 pub fn info(db: &mut HashMap<Vec<u8>, Atom>, req: &KeyOp) -> OpResult {
+    // get set to query
     let st = {
         let key = req.get_key();
         match db.get(key) {
@@ -76,9 +89,11 @@ pub fn info(db: &mut HashMap<Vec<u8>, Atom>, req: &KeyOp) -> OpResult {
         }
     };
 
+    // return set info aka metadata.   at present, just the element count.
     let mut info_res = SetInfoRes::new();
     info_res.length = st.len() as u32;
 
+    // standard operation result assignment & final return
     let mut op_res = OpResult::new();
 
     op_res.ok = true;
@@ -89,6 +104,7 @@ pub fn info(db: &mut HashMap<Vec<u8>, Atom>, req: &KeyOp) -> OpResult {
 }
 
 pub fn members(db: &mut HashMap<Vec<u8>, Atom>, req: &KeyOp) -> OpResult {
+    // get set to query
     let st = {
         let key = req.get_key();
         match db.get(key) {
@@ -104,11 +120,14 @@ pub fn members(db: &mut HashMap<Vec<u8>, Atom>, req: &KeyOp) -> OpResult {
         }
     };
 
+    // push entire set contents into result.
+    // todo: there is probably a Rust-y way to .zip() or .collect() here
     let mut list_res = ListRes::new();
     for item in st.iter() {
         list_res.elements.push(item.to_vec());
     }
 
+    // standard operation result assignment & final return
     let mut op_res = OpResult::new();
 
     op_res.ok = true;
@@ -123,9 +142,11 @@ pub fn diff(db: &mut HashMap<Vec<u8>, Atom>, req: &CmpStoreOp) -> OpResult {
         return result_err(-400, "at least one key required");
     }
 
+    // iterate through list of provided keys
     let mut diff_result = HashSet::new();
     let mut first_key = true;
     for key in req.keys.iter() {
+        // first key: read set, or empty set upon exception
         if first_key {
             first_key = false;
 
@@ -138,6 +159,8 @@ pub fn diff(db: &mut HashMap<Vec<u8>, Atom>, req: &CmpStoreOp) -> OpResult {
                     diff_result = HashSet::new();
                 }
             }
+
+        // following keys: attempt to remove from difference set
         } else {
             let atom_res = db.get(key);
             let operand = match atom_res {
@@ -151,6 +174,7 @@ pub fn diff(db: &mut HashMap<Vec<u8>, Atom>, req: &CmpStoreOp) -> OpResult {
         }
     }
 
+    // standard operation result assignment
     let mut op_res = OpResult::new();
 
     op_res.ok = true;
@@ -158,6 +182,7 @@ pub fn diff(db: &mut HashMap<Vec<u8>, Atom>, req: &CmpStoreOp) -> OpResult {
 
     let do_store = req.store_key.len() > 0;
 
+    // if storing in db, do so + return count stored
     if do_store {
         let n_results = diff_result.len() as u64;
         db.insert(req.store_key.to_vec(), Atom::Set(diff_result));
@@ -165,6 +190,56 @@ pub fn diff(db: &mut HashMap<Vec<u8>, Atom>, req: &CmpStoreOp) -> OpResult {
         let mut count_res = CountRes::new();
         count_res.n = n_results;
         op_res.set_count(count_res);
+
+    // otherwise return calculated result directly to client
+    } else {
+        let mut list_res = ListRes::new();
+        for elem in diff_result.iter() {
+            list_res.elements.push(elem.to_vec());
+        }
+        op_res.set_list(list_res);
+    }
+
+    op_res
+}
+
+pub fn union(db: &mut HashMap<Vec<u8>, Atom>, req: &CmpStoreOp) -> OpResult {
+    if req.keys.len() < 1 {
+        return result_err(-400, "at least one key required");
+    }
+
+    // iterate through list of provided keys
+    // inserting into result union
+    let mut diff_result = HashSet::new();
+    for key in req.keys.iter() {
+        match db.get(key) {
+            Some(Atom::Set(st)) => {
+                for elem in st.iter() {
+                    diff_result.insert(elem.clone());
+                }
+            }
+            _ => {}
+        }
+    }
+
+    // standard operation result assignment
+    let mut op_res = OpResult::new();
+
+    op_res.ok = true;
+    op_res.otype = OpType::SET_UNION;
+
+    let do_store = req.store_key.len() > 0;
+
+    // if storing in db, do so + return count stored
+    if do_store {
+        let n_results = diff_result.len() as u64;
+        db.insert(req.store_key.to_vec(), Atom::Set(diff_result));
+
+        let mut count_res = CountRes::new();
+        count_res.n = n_results;
+        op_res.set_count(count_res);
+
+    // otherwise return calculated result directly to client
     } else {
         let mut list_res = ListRes::new();
         for elem in diff_result.iter() {
@@ -177,6 +252,7 @@ pub fn diff(db: &mut HashMap<Vec<u8>, Atom>, req: &CmpStoreOp) -> OpResult {
 }
 
 pub fn is_member(db: &mut HashMap<Vec<u8>, Atom>, req: &KeyedListOp) -> OpResult {
+    // get set to query
     let st = {
         let key = req.get_key();
         match db.get(key) {
@@ -192,6 +268,7 @@ pub fn is_member(db: &mut HashMap<Vec<u8>, Atom>, req: &KeyedListOp) -> OpResult
         }
     };
 
+    // count number of matches of set intersecting with provided list
     let mut n_match = 0;
     for item in req.elements.iter() {
         if st.contains(item) {
@@ -199,9 +276,11 @@ pub fn is_member(db: &mut HashMap<Vec<u8>, Atom>, req: &KeyedListOp) -> OpResult
         }
     }
 
+    // return matched count
     let mut count_res = CountRes::new();
     count_res.n = n_match;
 
+    // standard operation result assignment & final return
     let mut op_res = OpResult::new();
 
     op_res.ok = true;
@@ -417,5 +496,31 @@ mod tests {
         assert_eq!(list_res.elements.len(), 2);
         assert_eq!(list_res.elements[0], b"b");
         assert_eq!(list_res.elements[1], b"d");
+    }
+
+    #[test]
+    fn union() {
+        let mut db = get_test_db();
+
+        // add one,two,two == set(one,two)
+        let mut req = CmpStoreOp::new();
+        req.keys.push(b"set1".to_vec());
+        req.keys.push(b"set2".to_vec());
+        req.keys.push(b"set3".to_vec());
+
+        let mut res = set::union(&mut db, &req);
+
+        assert_eq!(res.ok, true);
+        assert_eq!(res.otype, OpType::SET_UNION);
+        assert!(res.has_list());
+
+        let list_res = res.mut_list();
+        list_res.elements.sort();
+        assert_eq!(list_res.elements.len(), 5);
+        assert_eq!(list_res.elements[0], b"a");
+        assert_eq!(list_res.elements[1], b"b");
+        assert_eq!(list_res.elements[2], b"c");
+        assert_eq!(list_res.elements[3], b"d");
+        assert_eq!(list_res.elements[4], b"e");
     }
 }
