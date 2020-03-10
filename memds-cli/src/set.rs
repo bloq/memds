@@ -80,7 +80,7 @@ pub fn add_del(
     Ok(())
 }
 
-pub fn diff_union(
+pub fn cmpstore(
     client: &MemdsClient,
     keys: &Vec<&str>,
     store_key: &str,
@@ -266,6 +266,41 @@ pub mod args {
             .arg(
                 Arg::with_name("keys")
                     .help("List of subtractive sets")
+                    .multiple(true),
+            )
+    }
+
+    pub fn sinter() -> App<'static, 'static> {
+        SubCommand::with_name("sinter")
+            .about("Set.Intersect: Intersect sets")
+            .arg(
+                Arg::with_name("key1")
+                    .help("1st Set for intersect")
+                    .required(true),
+            )
+            .arg(
+                Arg::with_name("keys")
+                    .help("List of intersected sets")
+                    .multiple(true),
+            )
+    }
+
+    pub fn sinterstore() -> App<'static, 'static> {
+        SubCommand::with_name("sinterstore")
+            .about("Set.IntersectStore: Intersect sets, and store result")
+            .arg(
+                Arg::with_name("destination")
+                    .help("Set receiving inter results")
+                    .required(true),
+            )
+            .arg(
+                Arg::with_name("key1")
+                    .help("1st Set for intersect")
+                    .required(true),
+            )
+            .arg(
+                Arg::with_name("keys")
+                    .help("List of intersected sets")
                     .multiple(true),
             )
     }

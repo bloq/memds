@@ -100,7 +100,7 @@ impl Memds for MemdsService {
                     out_resp.results.push(op_res);
                 }
 
-                OpType::SET_DIFF | OpType::SET_UNION => {
+                OpType::SET_DIFF | OpType::SET_UNION | OpType::SET_INTERSECT => {
                     if !op.has_cmp_stor() {
                         out_resp.results.push(result_err(-400, "Invalid op"));
                         continue;
@@ -109,6 +109,7 @@ impl Memds for MemdsService {
                     let op_res = match op.otype {
                         OpType::SET_DIFF => set::diff(&mut db, op_req),
                         OpType::SET_UNION => set::union(&mut db, op_req),
+                        OpType::SET_INTERSECT => set::intersect(&mut db, op_req),
                         _ => unreachable!(),
                     };
 

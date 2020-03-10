@@ -137,6 +137,7 @@ enum OpType {
   SET_DEL = 52;
   SET_DIFF = 55;
   SET_MEMBERS = 53;
+  SET_INTERSECT = 57;
   SET_ISMEMBER = 54;
   SET_UNION = 56;
 

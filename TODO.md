@@ -32,7 +32,9 @@
  - [ ] Import data dump
  - [ ] Write-ahead logging
 
-## Code organization
+## Code organization and Q/A
 
  - [ ] Reduce amount of boilerplate code in per-operation processing.
+ - [ ] Improve per-op tests beyond it-works
+ - [ ] CLI integration tests
 
