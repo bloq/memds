@@ -45,8 +45,11 @@ fn main() -> io::Result<()> {
         .subcommand(set::args::scard())
         .subcommand(set::args::sdiff())
         .subcommand(set::args::sdiffstore())
+        .subcommand(set::args::sinter())
+        .subcommand(set::args::sinterstore())
         .subcommand(set::args::sismember())
         .subcommand(set::args::smembers())
+        .subcommand(set::args::smove())
         .subcommand(set::args::srem())
         .subcommand(set::args::sunion())
         .subcommand(set::args::sunionstore())
@@ -180,14 +183,28 @@ fn main() -> io::Result<()> {
             let mut keys: Vec<_> = matches.values_of("keys").unwrap().collect();
             keys.insert(0, key1);
             let empty = String::from("");
-            set::diff_union(&client, &keys, &empty, OpType::SET_DIFF)
+            set::cmpstore(&client, &keys, &empty, OpType::SET_DIFF)
         }
         ("sdiffstore", Some(matches)) => {
             let store_key = matches.value_of("destination").unwrap();
             let key1 = matches.value_of("key1").unwrap();
             let mut keys: Vec<_> = matches.values_of("keys").unwrap().collect();
             keys.insert(0, key1);
-            set::diff_union(&client, &keys, &store_key, OpType::SET_DIFF)
+            set::cmpstore(&client, &keys, &store_key, OpType::SET_DIFF)
+        }
+        ("sinter", Some(matches)) => {
+            let key1 = matches.value_of("key1").unwrap();
+            let mut keys: Vec<_> = matches.values_of("keys").unwrap().collect();
+            keys.insert(0, key1);
+            let empty = String::from("");
+            set::cmpstore(&client, &keys, &empty, OpType::SET_INTERSECT)
+        }
+        ("sinterstore", Some(matches)) => {
+            let store_key = matches.value_of("destination").unwrap();
+            let key1 = matches.value_of("key1").unwrap();
+            let mut keys: Vec<_> = matches.values_of("keys").unwrap().collect();
+            keys.insert(0, key1);
+            set::cmpstore(&client, &keys, &store_key, OpType::SET_INTERSECT)
         }
         ("sismember", Some(matches)) => {
             let key = matches.value_of("key").unwrap();
@@ -213,6 +230,12 @@ fn main() -> io::Result<()> {
             let value = matches.value_of("value").unwrap();
             string::set(&client, key, value, false, false, true)
         }
+        ("smove", Some(matches)) => {
+            let src_key = matches.value_of("src_key").unwrap();
+            let dest_key = matches.value_of("dest_key").unwrap();
+            let member = matches.value_of("member").unwrap();
+            set::mov(&client, src_key, dest_key, member)
+        }
         ("strlen", Some(matches)) => {
             let key = matches.value_of("key").unwrap();
             string::strlen(&client, key)
@@ -222,14 +245,14 @@ fn main() -> io::Result<()> {
             let mut keys: Vec<_> = matches.values_of("keys").unwrap().collect();
             keys.insert(0, key1);
             let empty = String::from("");
-            set::diff_union(&client, &keys, &empty, OpType::SET_UNION)
+            set::cmpstore(&client, &keys, &empty, OpType::SET_UNION)
         }
         ("sunionstore", Some(matches)) => {
             let store_key = matches.value_of("destination").unwrap();
             let key1 = matches.value_of("key1").unwrap();
             let mut keys: Vec<_> = matches.values_of("keys").unwrap().collect();
             keys.insert(0, key1);
-            set::diff_union(&client, &keys, &store_key, OpType::SET_UNION)
+            set::cmpstore(&client, &keys, &store_key, OpType::SET_UNION)
         }
         ("time", Some(_matches)) => server::time(&client),
         ("type", Some(matches)) => {

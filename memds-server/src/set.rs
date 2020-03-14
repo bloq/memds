@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::collections::HashSet;
 
 use memds_proto::memds_api::{
-    CmpStoreOp, CountRes, KeyOp, KeyedListOp, ListRes, OpResult, OpType, SetInfoRes,
+    CmpStoreOp, CountRes, KeyOp, KeyedListOp, ListRes, OpResult, OpType, SetInfoRes, SetMoveOp,
 };
 use memds_proto::util::result_err;
 use memds_proto::Atom;
@@ -72,6 +72,76 @@ pub fn add_del(db: &mut HashMap<Vec<u8>, Atom>, req: &KeyedListOp, otype: OpType
     op_res
 }
 
+pub fn mov(db: &mut HashMap<Vec<u8>, Atom>, req: &SetMoveOp) -> OpResult {
+    // test sets
+    let src_key = req.get_src_key();
+    match db.get(src_key) {
+        None => {
+            return result_err(-404, "Not Found");
+        }
+        Some(atom) => match atom {
+            Atom::Set(_st) => {}
+            _ => {
+                return result_err(-400, "not a set");
+            }
+        },
+    }
+    let dest_key = req.get_dest_key();
+    match db.get(dest_key) {
+        None => {
+            db.insert(dest_key.to_vec(), Atom::Set(HashSet::new()));
+        }
+        Some(atom) => match atom {
+            Atom::Set(_st) => {}
+            _ => {
+                return result_err(-400, "not a set");
+            }
+        },
+    }
+
+    let src_st = {
+        match db.get_mut(src_key) {
+            None => unreachable!(),
+            Some(atom) => match atom {
+                Atom::Set(st) => st,
+                _ => unreachable!(),
+            },
+        }
+    };
+
+    let mut n_updated = 0;
+    let member = req.get_member();
+    if src_st.remove(member) {
+        n_updated += 1;
+    }
+
+    // get dest set, and insert
+    if n_updated > 0 {
+        match db.get_mut(dest_key) {
+            None => unreachable!(),
+            Some(atom) => match atom {
+                Atom::Set(st) => {
+                    st.insert(member.to_vec());
+                }
+                _ => unreachable!(),
+            },
+        }
+    }
+
+    // return set info aka metadata.   at present, just the element count.
+    let mut count_res = CountRes::new();
+    count_res.n = n_updated as u64;
+
+    // standard operation result assignment & final return
+    let mut op_res = OpResult::new();
+
+    op_res.ok = true;
+    op_res.otype = OpType::SET_MOVE;
+    op_res.set_count(count_res);
+
+    op_res
+}
+
 pub fn info(db: &mut HashMap<Vec<u8>, Atom>, req: &KeyOp) -> OpResult {
     // get set to query
     let st = {
@@ -133,6 +203,83 @@ pub fn members(db: &mut HashMap<Vec<u8>, Atom>, req: &KeyOp) -> OpResult {
     op_res.ok = true;
     op_res.otype = OpType::SET_MEMBERS;
     op_res.set_list(list_res);
+
+    op_res
+}
+
+pub fn intersect(db: &mut HashMap<Vec<u8>, Atom>, req: &CmpStoreOp) -> OpResult {
+    if req.keys.len() < 1 {
+        return result_err(-400, "at least one key required");
+    }
+
+    // iterate through list of provided keys
+    let mut sect_result = HashSet::new();
+    let mut first_key = true;
+    for key in req.keys.iter() {
+        // first key: read set, or empty set upon exception
+        if first_key {
+            first_key = false;
+
+            let atom_res = db.get(key);
+            match atom_res {
+                Some(Atom::Set(st)) => {
+                    sect_result = st.clone();
+                }
+                _ => {
+                    sect_result = HashSet::new();
+                }
+            }
+
+        // following keys: intersect with working set
+        } else {
+            match db.get(key) {
+                Some(Atom::Set(st)) => {
+                    let mut tmp_result = HashSet::new();
+                    for sect_elem in sect_result.iter() {
+                        if st.contains(sect_elem) {
+                            tmp_result.insert(sect_elem.clone());
+                        }
+                    }
+
+                    sect_result = tmp_result;
+                }
+                _ => {
+                    sect_result.clear();
+                }
+            };
+        }
+
+        // shortcut: if empty set, no need to continue
+        if sect_result.is_empty() {
+            break;
+        }
+    }
+
+    // standard operation result assignment
+    let mut op_res = OpResult::new();
+
+    op_res.ok = true;
+    op_res.otype = OpType::SET_INTERSECT;
+
+    let do_store = req.store_key.len() > 0;
+
+    // if storing in db, do so + return count stored
+    if do_store {
+        let n_results = sect_result.len() as u64;
+        db.insert(req.store_key.to_vec(), Atom::Set(sect_result));
+
+        let mut count_res = CountRes::new();
+        count_res.n = n_results;
+        op_res.set_count(count_res);
+
+    // otherwise return calculated result directly to client
+    } else {
+        let mut list_res = ListRes::new();
+        for elem in sect_result.iter() {
+            list_res.elements.push(elem.to_vec());
+        }
+        op_res.set_list(list_res);
+    }
 
     op_res
 }
@@ -293,7 +440,7 @@ pub fn is_member(db: &mut HashMap<Vec<u8>, Atom>, req: &KeyedListOp) -> OpResult
 #[cfg(test)]
 mod tests {
     use crate::set;
-    use memds_proto::memds_api::{CmpStoreOp, KeyOp, KeyedListOp, OpType};
+    use memds_proto::memds_api::{CmpStoreOp, KeyOp, KeyedListOp, OpType, SetMoveOp};
     use memds_proto::Atom;
     use std::collections::HashMap;
     use std::collections::HashSet;
@@ -522,5 +669,72 @@ mod tests {
         assert_eq!(list_res.elements[2], b"c");
         assert_eq!(list_res.elements[3], b"d");
         assert_eq!(list_res.elements[4], b"e");
+    }
+
+    #[test]
+    fn intersect() {
+        let mut db = get_test_db();
+
+        // add one,two,two == set(one,two)
+        let mut req = CmpStoreOp::new();
+        req.keys.push(b"set1".to_vec());
+        req.keys.push(b"set2".to_vec());
+        req.keys.push(b"set3".to_vec());
+
+        let mut res = set::intersect(&mut db, &req);
+
+        assert_eq!(res.ok, true);
+        assert_eq!(res.otype, OpType::SET_INTERSECT);
+        assert!(res.has_list());
+
+        let list_res = res.mut_list();
+        assert_eq!(list_res.elements.len(), 1);
+        assert_eq!(list_res.elements[0], b"c");
+    }
+
+    #[test]
+    fn mov() {
+        let mut db = get_test_db();
+
+        // add one,two,two == set(one,two)
+        let mut req = SetMoveOp::new();
+        req.set_src_key(b"set1".to_vec());
+        req.set_dest_key(b"setx".to_vec());
+        req.set_member(b"d".to_vec());
+
+        let res = set::mov(&mut db, &req);
+
+        assert_eq!(res.ok, true);
+        assert_eq!(res.otype, OpType::SET_MOVE);
+        assert!(res.has_count());
+
+        let count_res = res.get_count();
+        assert_eq!(count_res.n, 1);
+
+        // check 'd' is a member of setx
+        let mut req = KeyedListOp::new();
+        req.set_key(b"setx".to_vec());
+        req.elements.push(b"d".to_vec());
+
+        let res = set::is_member(&mut db, &req);
+        assert_eq!(res.ok, true);
+        assert_eq!(res.otype, OpType::SET_ISMEMBER);
+        assert!(res.has_count());
+
+        let count_res = res.get_count();
+        assert_eq!(count_res.n, 1);
+
+        // check 'd' is not a member of set1
+        let mut req = KeyedListOp::new();
+        req.set_key(b"set1".to_vec());
+        req.elements.push(b"d".to_vec());
+
+        let res = set::is_member(&mut db, &req);
+        assert_eq!(res.ok, true);
+        assert_eq!(res.otype, OpType::SET_ISMEMBER);
+        assert!(res.has_count());
+
+        let count_res = res.get_count();
+        assert_eq!(count_res.n, 0);
     }
 }

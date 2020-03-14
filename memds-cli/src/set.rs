@@ -80,7 +80,7 @@ pub fn add_del(
     Ok(())
 }
 
-pub fn diff_union(
+pub fn cmpstore(
     client: &MemdsClient,
     keys: &Vec<&str>,
     store_key: &str,
@@ -206,6 +206,41 @@ pub fn members(client: &MemdsClient, key: &str) -> io::Result<()> {
     Ok(())
 }
 
+pub fn mov(client: &MemdsClient, src_key: &str, dest_key: &str, member: &str) -> io::Result<()> {
+    let mut op_req = SetMoveOp::new();
+    op_req.set_src_key(src_key.as_bytes().to_vec());
+    op_req.set_dest_key(dest_key.as_bytes().to_vec());
+    op_req.set_member(member.as_bytes().to_vec());
+
+    let mut op = Operation::new();
+    op.otype = OpType::SET_MOVE;
+    op.set_set_move(op_req);
+
+    let mut req = RequestMsg::new();
+    req.ops.push(op);
+
+    let resp = util::rpc_exec(&client, &req)?;
+
+    if !resp.ok {
+        let msg = format!("Batch failure {}: {}", resp.err_code, resp.err_message);
+        return Err(Error::new(ErrorKind::Other, msg));
+    }
+
+    let results = resp.get_results();
+    assert_eq!(results.len(), 1);
+
+    let result = &results[0];
+    if !result.ok {
+        let msg = format!("set-move: {}", result.err_message);
+        return Err(Error::new(ErrorKind::Other, msg));
+    }
+
+    let count_res = results[0].get_count();
+    println!("{}", count_res.n);
+
+    Ok(())
+}
+
 pub mod args {
     use clap::{App, Arg, SubCommand};
 
@@ -270,6 +305,41 @@ pub mod args {
             )
     }
 
+    pub fn sinter() -> App<'static, 'static> {
+        SubCommand::with_name("sinter")
+            .about("Set.Intersect: Intersect sets")
+            .arg(
+                Arg::with_name("key1")
+                    .help("1st Set for intersect")
+                    .required(true),
+            )
+            .arg(
+                Arg::with_name("keys")
+                    .help("List of intersected sets")
+                    .multiple(true),
+            )
+    }
+
+    pub fn sinterstore() -> App<'static, 'static> {
+        SubCommand::with_name("sinterstore")
+            .about("Set.IntersectStore: Intersect sets, and store result")
+            .arg(
+                Arg::with_name("destination")
+                    .help("Set receiving inter results")
+                    .required(true),
+            )
+            .arg(
+                Arg::with_name("key1")
+                    .help("1st Set for intersect")
+                    .required(true),
+            )
+            .arg(
+                Arg::with_name("keys")
+                    .help("List of intersected sets")
+                    .multiple(true),
+            )
+    }
+
     pub fn sismember() -> App<'static, 'static> {
         SubCommand::with_name("sismember")
             .about("Set.IsMember: Test existence of items in a set")
@@ -292,6 +362,22 @@ pub mod args {
             .arg(
                 Arg::with_name("key")
                     .help("Key of set to query")
+                    .required(true),
+            )
+    }
+
+    pub fn smove() -> App<'static, 'static> {
+        SubCommand::with_name("smove")
+            .about("Set.Move: Move member between sets")
+            .arg(Arg::with_name("src_key").help("Source set").required(true))
+            .arg(
+                Arg::with_name("dest_key")
+                    .help("Destination Set")
+                    .required(true),
+            )
+            .arg(
+                Arg::with_name("member")
+                    .help("Set member to move")
                     .required(true),
             )
     }
