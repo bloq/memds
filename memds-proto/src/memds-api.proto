@@ -92,6 +92,12 @@ message KeyedListOp {
   repeated bytes elements = 4;	// items to query or update within key
 }
 
+message SetMoveOp {
+  bytes src_key = 1;
+  bytes dest_key = 2;
+  bytes member = 3;
+}
+
 message SetInfoRes {
   uint32 length = 1;
 }
@@ -140,6 +146,7 @@ enum OpType {
   SET_INTERSECT = 57;
   SET_ISMEMBER = 54;
   SET_UNION = 56;
+  SET_MOVE = 58;
 
   SRV_DBSIZE = 41;
   SRV_FLUSHDB = 42;
@@ -170,6 +177,7 @@ message Operation {
   KeyRenameOp rename = 18;
   KeyedListOp keyed_list = 19;
   CmpStoreOp cmp_stor = 20;
+  SetMoveOp set_move = 21;
 }
 
 message RequestMsg {

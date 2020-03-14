@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::collections::HashSet;
 
 use memds_proto::memds_api::{
-    CmpStoreOp, CountRes, KeyOp, KeyedListOp, ListRes, OpResult, OpType, SetInfoRes,
+    CmpStoreOp, CountRes, KeyOp, KeyedListOp, ListRes, OpResult, OpType, SetInfoRes, SetMoveOp,
 };
 use memds_proto::util::result_err;
 use memds_proto::Atom;
@@ -67,6 +67,76 @@ pub fn add_del(db: &mut HashMap<Vec<u8>, Atom>, req: &KeyedListOp, otype: OpType
 
     op_res.ok = true;
     op_res.otype = otype;
+    op_res.set_count(count_res);
+
+    op_res
+}
+
+pub fn mov(db: &mut HashMap<Vec<u8>, Atom>, req: &SetMoveOp) -> OpResult {
+    // test sets
+    let src_key = req.get_src_key();
+    match db.get(src_key) {
+        None => {
+            return result_err(-404, "Not Found");
+        }
+        Some(atom) => match atom {
+            Atom::Set(_st) => {}
+            _ => {
+                return result_err(-400, "not a set");
+            }
+        },
+    }
+    let dest_key = req.get_dest_key();
+    match db.get(dest_key) {
+        None => {
+            db.insert(dest_key.to_vec(), Atom::Set(HashSet::new()));
+        }
+        Some(atom) => match atom {
+            Atom::Set(_st) => {}
+            _ => {
+                return result_err(-400, "not a set");
+            }
+        },
+    }
+
+    let src_st = {
+        match db.get_mut(src_key) {
+            None => unreachable!(),
+            Some(atom) => match atom {
+                Atom::Set(st) => st,
+                _ => unreachable!(),
+            },
+        }
+    };
+
+    let mut n_updated = 0;
+    let member = req.get_member();
+    if src_st.remove(member) {
+        n_updated += 1;
+    }
+
+    // get dest set, and insert
+    if n_updated > 0 {
+        match db.get_mut(dest_key) {
+            None => unreachable!(),
+            Some(atom) => match atom {
+                Atom::Set(st) => {
+                    st.insert(member.to_vec());
+                }
+                _ => unreachable!(),
+            },
+        }
+    }
+
+    // return set info aka metadata.   at present, just the element count.
+    let mut count_res = CountRes::new();
+    count_res.n = n_updated as u64;
+
+    // standard operation result assignment & final return
+    let mut op_res = OpResult::new();
+
+    op_res.ok = true;
+    op_res.otype = OpType::SET_MOVE;
     op_res.set_count(count_res);
 
     op_res
@@ -370,7 +440,7 @@ pub fn is_member(db: &mut HashMap<Vec<u8>, Atom>, req: &KeyedListOp) -> OpResult
 #[cfg(test)]
 mod tests {
     use crate::set;
-    use memds_proto::memds_api::{CmpStoreOp, KeyOp, KeyedListOp, OpType};
+    use memds_proto::memds_api::{CmpStoreOp, KeyOp, KeyedListOp, OpType, SetMoveOp};
     use memds_proto::Atom;
     use std::collections::HashMap;
     use std::collections::HashSet;
@@ -620,5 +690,51 @@ mod tests {
         let list_res = res.mut_list();
         assert_eq!(list_res.elements.len(), 1);
         assert_eq!(list_res.elements[0], b"c");
+    }
+
+    #[test]
+    fn mov() {
+        let mut db = get_test_db();
+
+        // add one,two,two == set(one,two)
+        let mut req = SetMoveOp::new();
+        req.set_src_key(b"set1".to_vec());
+        req.set_dest_key(b"setx".to_vec());
+        req.set_member(b"d".to_vec());
+
+        let res = set::mov(&mut db, &req);
+
+        assert_eq!(res.ok, true);
+        assert_eq!(res.otype, OpType::SET_MOVE);
+        assert!(res.has_count());
+
+        let count_res = res.get_count();
+        assert_eq!(count_res.n, 1);
+
+        // check 'd' is a member of setx
+        let mut req = KeyedListOp::new();
+        req.set_key(b"setx".to_vec());
+        req.elements.push(b"d".to_vec());
+
+        let res = set::is_member(&mut db, &req);
+        assert_eq!(res.ok, true);
+        assert_eq!(res.otype, OpType::SET_ISMEMBER);
+        assert!(res.has_count());
+
+        let count_res = res.get_count();
+        assert_eq!(count_res.n, 1);
+
+        // check 'd' is not a member of set1
+        let mut req = KeyedListOp::new();
+        req.set_key(b"set1".to_vec());
+        req.elements.push(b"d".to_vec());
+
+        let res = set::is_member(&mut db, &req);
+        assert_eq!(res.ok, true);
+        assert_eq!(res.otype, OpType::SET_ISMEMBER);
+        assert!(res.has_count());
+
+        let count_res = res.get_count();
+        assert_eq!(count_res.n, 0);
     }
 }

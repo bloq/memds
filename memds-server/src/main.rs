@@ -132,6 +132,16 @@ impl Memds for MemdsService {
                     out_resp.results.push(op_res);
                 }
 
+                OpType::SET_MOVE => {
+                    if !op.has_set_move() {
+                        out_resp.results.push(result_err(-400, "Invalid op"));
+                        continue;
+                    }
+                    let op_req = op.get_set_move();
+                    let op_res = set::mov(&mut db, op_req);
+                    out_resp.results.push(op_res);
+                }
+
                 OpType::SRV_DBSIZE => {
                     let op_res = server::dbsize(&mut db);
                     out_resp.results.push(op_res);

@@ -49,6 +49,7 @@ fn main() -> io::Result<()> {
         .subcommand(set::args::sinterstore())
         .subcommand(set::args::sismember())
         .subcommand(set::args::smembers())
+        .subcommand(set::args::smove())
         .subcommand(set::args::srem())
         .subcommand(set::args::sunion())
         .subcommand(set::args::sunionstore())
@@ -228,6 +229,12 @@ fn main() -> io::Result<()> {
             let key = matches.value_of("key").unwrap();
             let value = matches.value_of("value").unwrap();
             string::set(&client, key, value, false, false, true)
+        }
+        ("smove", Some(matches)) => {
+            let src_key = matches.value_of("src_key").unwrap();
+            let dest_key = matches.value_of("dest_key").unwrap();
+            let member = matches.value_of("member").unwrap();
+            set::mov(&client, src_key, dest_key, member)
         }
         ("strlen", Some(matches)) => {
             let key = matches.value_of("key").unwrap();
