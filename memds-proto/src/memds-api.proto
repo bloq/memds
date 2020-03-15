@@ -210,3 +210,21 @@ message ResponseMsg {
   repeated OpResult results = 4;
 }
 
+message DbValue {
+  AtomType typ = 1;
+  bytes key = 2;
+
+  bytes str = 3;
+  ListRes list = 4;
+}
+
+message MemdsMessage {
+  enum MsgType {
+    NULLMSG = 0;
+    DBVAL = 1;
+  }
+
+  MsgType mtype = 1;
+  DbValue dbv = 2;
+}
+

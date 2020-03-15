@@ -1,5 +1,8 @@
 use std::collections::HashSet;
 
+mod codec;
+mod error;
+
 pub const DEF_PORT: u16 = 16900;
 
 #[derive(Clone)]
@@ -12,3 +15,6 @@ pub enum Atom {
 pub mod util;
 pub mod memds_api;
 pub mod memds_api_grpc;
+
+pub use codec::MemdsCodec;
+pub use error::MemdsError;
