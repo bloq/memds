@@ -132,6 +132,8 @@ enum OpType {
   KEYS_EXIST = 11;
   KEYS_RENAME = 13;
   KEYS_TYPE = 12;
+  KEY_DUMP = 14;
+  KEY_RESTORE = 15;
 
   LIST_PUSH = 20;
   LIST_POP = 21;
@@ -215,7 +217,7 @@ message DbValue {
   bytes key = 2;
 
   bytes str = 3;
-  ListRes list = 4;
+  repeated bytes elements = 4;
 }
 
 message MemdsMessage {

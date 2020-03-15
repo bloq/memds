@@ -53,6 +53,27 @@ impl Memds for MemdsService {
         let ops = msg_req.get_ops();
         for op in ops.iter() {
             match op.otype {
+                OpType::KEY_DUMP => {
+                    if !op.has_key() {
+                        out_resp.results.push(result_err(-400, "Invalid op"));
+                        continue;
+                    }
+                    let op_req = op.get_key();
+                    let op_res = keys::dump(&mut db, op_req);
+                    out_resp.results.push(op_res);
+                }
+
+                OpType::KEY_RESTORE => {
+                    if !op.has_set() {
+                        out_resp.results.push(result_err(-400, "Invalid op"));
+                        continue;
+                    }
+
+                    let op_req = op.get_set();
+                    let op_res = keys::restore(&mut db, op_req);
+                    out_resp.results.push(op_res);
+                }
+
                 OpType::KEYS_DEL | OpType::KEYS_EXIST => {
                     if !op.has_key_list() {
                         out_resp.results.push(result_err(-400, "Invalid op"));

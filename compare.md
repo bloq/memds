@@ -4,12 +4,12 @@
 ## Keys operations
 
  - [x] DEL
- - [ ] DUMP
+ - [x] DUMP
  - [x] EXISTS
  - [ ] EXPIRE
  - [ ] EXPIREAT
  - [ ] KEYS
- - [ ] MIGATE
+ - [ ] MIGRATE
  - [ ] MOVE
  - [ ] OBJECT
  - [ ] PERSIST
@@ -19,7 +19,7 @@
  - [ ] RANDOMKEY
  - [x] RENAME
  - [x] RENAMENX
- - [ ] RESTORE
+ - [x] RESTORE
  - [ ] SORT
  - [ ] TOUCH
  - [ ] TTL

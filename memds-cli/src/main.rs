@@ -25,9 +25,11 @@ fn main() -> io::Result<()> {
         .version(VERSION)
         .about("Memds CLI")
         .subcommand(keys::args::del())
+        .subcommand(keys::args::dump())
         .subcommand(keys::args::exists())
         .subcommand(keys::args::rename())
         .subcommand(keys::args::renamenx())
+        .subcommand(keys::args::restore())
         .subcommand(keys::args::typ())
         .subcommand(list::args::lindex())
         .subcommand(list::args::llen())
@@ -92,6 +94,10 @@ fn main() -> io::Result<()> {
             let keys: Vec<_> = matches.values_of("key").unwrap().collect();
             keys::del_exist(&client, &keys, true)
         }
+        ("dump", Some(matches)) => {
+            let key = matches.value_of("key").unwrap();
+            keys::dump(&client, key)
+        }
         ("exists", Some(matches)) => {
             let keys: Vec<_> = matches.values_of("key").unwrap().collect();
             keys::del_exist(&client, &keys, false)
@@ -154,6 +160,11 @@ fn main() -> io::Result<()> {
             let old_key = matches.value_of("old_key").unwrap();
             let new_key = matches.value_of("new_key").unwrap();
             keys::rename(&client, old_key, new_key, true)
+        }
+        ("restore", Some(matches)) => {
+            let key = matches.value_of("key");
+            let restore_fn = matches.value_of("file").unwrap();
+            keys::restore(&client, key, restore_fn)
         }
         ("rpop", Some(matches)) => {
             let key = matches.value_of("key").unwrap();

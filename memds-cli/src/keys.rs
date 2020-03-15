@@ -1,4 +1,5 @@
-use std::io::{self, Error, ErrorKind};
+use std::fs::File;
+use std::io::{self, Error, ErrorKind, Read, Write};
 
 use memds_proto::memds_api::*;
 use memds_proto::memds_api_grpc::MemdsClient;
@@ -80,6 +81,39 @@ pub fn rename(
     Ok(())
 }
 
+pub fn dump(client: &MemdsClient, key: &str) -> io::Result<()> {
+    let mut key_req = KeyOp::new();
+    key_req.set_key(key.as_bytes().to_vec());
+
+    let mut op = Operation::new();
+    op.otype = OpType::KEY_DUMP;
+    op.set_key(key_req);
+
+    let mut req = RequestMsg::new();
+    req.ops.push(op);
+
+    let resp = util::rpc_exec(&client, &req)?;
+
+    if !resp.ok {
+        let msg = format!("Batch failure {}: {}", resp.err_code, resp.err_message);
+        return Err(Error::new(ErrorKind::Other, msg));
+    }
+
+    let results = resp.get_results();
+    assert!(results.len() == 1);
+
+    let result = &results[0];
+    if !result.ok {
+        let msg = format!("{}: {}", key, result.err_message);
+        return Err(Error::new(ErrorKind::Other, msg));
+    }
+
+    let get_res = results[0].get_get();
+    let value = get_res.get_value();
+    io::stdout().write_all(value)?;
+    Ok(())
+}
+
 pub fn typ(client: &MemdsClient, key: &str) -> io::Result<()> {
     let mut key_req = KeyOp::new();
     key_req.set_key(key.as_bytes().to_vec());
@@ -112,6 +146,49 @@ pub fn typ(client: &MemdsClient, key: &str) -> io::Result<()> {
     Ok(())
 }
 
+fn read_file(in_fn: &str) -> io::Result<Vec<u8>> {
+    let mut f = File::open(in_fn)?;
+    let mut buffer = Vec::new();
+    f.read_to_end(&mut buffer)?;
+    Ok(buffer)
+}
+
+pub fn restore(client: &MemdsClient, key: Option<&str>, restore_fn: &str) -> io::Result<()> {
+    let mut set_req = StrSetOp::new();
+    if key.is_some() {
+        set_req.set_key(key.unwrap().as_bytes().to_vec());
+    }
+
+    let wire_data = read_file(restore_fn)?;
+    set_req.set_value(wire_data);
+
+    let mut op = Operation::new();
+    op.otype = OpType::KEY_RESTORE;
+    op.set_set(set_req);
+
+    let mut req = RequestMsg::new();
+    req.ops.push(op);
+
+    let resp = util::rpc_exec(&client, &req)?;
+
+    if !resp.ok {
+        let msg = format!("Batch failure {}: {}", resp.err_code, resp.err_message);
+        return Err(Error::new(ErrorKind::Other, msg));
+    }
+
+    let results = resp.get_results();
+    assert!(results.len() == 1);
+
+    let result = &results[0];
+    if result.ok {
+        io::stdout().write_all(b"ok\n")?;
+        Ok(())
+    } else {
+        let msg = format!("{:?}: {}", key, result.err_message);
+        Err(Error::new(ErrorKind::Other, msg))
+    }
+}
+
 pub mod args {
     use clap::{App, Arg, SubCommand};
 
@@ -124,6 +201,12 @@ pub mod args {
                     .required(true)
                     .multiple(true),
             )
+    }
+
+    pub fn dump() -> App<'static, 'static> {
+        SubCommand::with_name("dump")
+            .about("Keys.Dump: Dump listed key")
+            .arg(Arg::with_name("key").help("Key to dump").required(true))
     }
 
     pub fn exists() -> App<'static, 'static> {
@@ -164,6 +247,23 @@ pub mod args {
                 Arg::with_name("new_key")
                     .help("Destination Key of item")
                     .required(true),
+            )
+    }
+
+    pub fn restore() -> App<'static, 'static> {
+        SubCommand::with_name("restore")
+            .about("Keys.Restore: Restore item from dumpfile")
+            .arg(
+                Arg::with_name("file")
+                    .help("Pathname of item to restore")
+                    .required(true),
+            )
+            .arg(
+                Arg::with_name("key")
+                    .help("Key of item to query")
+                    .short("k")
+                    .long("key")
+                    .value_name("string"),
             )
     }
 
