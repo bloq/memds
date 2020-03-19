@@ -16,3 +16,4 @@ clap = "2.33"
 tokio = { version = "0.2", features = ["full"] }
 tokio-util = { version = "0.2", features = ["full"] }
 bytes = "0.5"
+nix = "0.17"

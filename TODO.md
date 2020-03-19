@@ -28,9 +28,13 @@
 
 ## Big features
 
- - [ ] Fork and export data
+ - [x] Fork and export data
  - [ ] Import data dump
  - [ ] Write-ahead logging
+
+## Bugs
+
+ - [ ] BGSAVE leaves zombie processes.  Need to wait(2)
 
 ## Code organization and Q/A
 

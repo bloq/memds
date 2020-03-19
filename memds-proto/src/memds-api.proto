@@ -150,6 +150,7 @@ enum OpType {
   SET_UNION = 56;
   SET_MOVE = 58;
 
+  SRV_BGSAVE = 44;
   SRV_DBSIZE = 41;
   SRV_FLUSHDB = 42;
   SRV_FLUSHALL = 43;
@@ -224,6 +225,7 @@ message MemdsMessage {
   enum MsgType {
     NULLMSG = 0;
     DBVAL = 1;
+    END = 2;
   }
 
   MsgType mtype = 1;

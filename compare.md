@@ -1,5 +1,21 @@
 
-# Comparison with redis commands
+# Comparison with redis
+
+## General features
+
+ - [x] Component: Memory database server
+ - [x] Component: Command-line client
+ - [ ] ADT: HashMap
+ - [x] ADT: Lists
+ - [ ] ADT: LRU cache
+ - [x] ADT: Sets
+ - [x] ADT: Strings
+ - [x] I/O: Fork and dump to fs
+ - [ ] I/O: Import dump
+ - [ ] I/O: Write-ahead logging
+ - [ ] Memory limits
+ - [ ] Network: Clusters
+ - [ ] Statistics
 
 ## Keys operations
 
@@ -51,7 +67,7 @@
 ## Server operations
 
  - [ ] BGREWRITEAOF
- - [ ] BGSAVE
+ - [x] BGSAVE
  - [ ] CLIENT ID
  - [ ] CLIENT KILL
  - [ ] CLIENT LIST

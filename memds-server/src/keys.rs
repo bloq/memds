@@ -107,18 +107,14 @@ pub fn typ(db: &mut HashMap<Vec<u8>, Atom>, req: &KeyOp) -> OpResult {
     op_res
 }
 
-pub fn dump(db: &mut HashMap<Vec<u8>, Atom>, req: &KeyOp) -> OpResult {
-    let key = req.get_key();
-
+pub fn element_dbv(db: &HashMap<Vec<u8>, Atom>, key: &[u8]) -> Option<DbValue> {
     // create result DbValue
     let mut dbv = DbValue::new();
     dbv.set_key(key.to_vec());
 
     // encode DbValue value
     match db.get(key) {
-        None => {
-            return result_err(-404, "Not Found");
-        }
+        None => return None,
 
         // match type
         Some(atom) => match atom {
@@ -139,6 +135,20 @@ pub fn dump(db: &mut HashMap<Vec<u8>, Atom>, req: &KeyOp) -> OpResult {
                 }
             }
         },
+    };
+
+    Some(dbv)
+}
+
+pub fn dump(db: &mut HashMap<Vec<u8>, Atom>, req: &KeyOp) -> OpResult {
+    // create result DbValue
+    let dbv = {
+        match element_dbv(db, req.get_key()) {
+            None => {
+                return result_err(-404, "Not Found");
+            }
+            Some(dbv) => dbv,
+        }
     };
 
     // encode DbValue wrapper message

@@ -39,6 +39,7 @@ fn main() -> io::Result<()> {
         .subcommand(list::args::rpop())
         .subcommand(list::args::rpush())
         .subcommand(list::args::rpushx())
+        .subcommand(server::args::bgsave())
         .subcommand(server::args::dbsize())
         .subcommand(server::args::flushall())
         .subcommand(server::args::flushdb())
@@ -80,6 +81,7 @@ fn main() -> io::Result<()> {
             let value = matches.value_of("value").unwrap();
             string::set(&client, key, value, false, true, false)
         }
+        ("bgsave", Some(_matches)) => server::bgsave(&client),
         ("dbsize", Some(_matches)) => server::dbsize(&client),
         ("decr", Some(matches)) => {
             let key = matches.value_of("key").unwrap();

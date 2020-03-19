@@ -163,6 +163,11 @@ impl Memds for MemdsService {
                     out_resp.results.push(op_res);
                 }
 
+                OpType::SRV_BGSAVE => {
+                    let op_res = server::bgsave(&mut db);
+                    out_resp.results.push(op_res);
+                }
+
                 OpType::SRV_DBSIZE => {
                     let op_res = server::dbsize(&mut db);
                     out_resp.results.push(op_res);

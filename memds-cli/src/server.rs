@@ -5,6 +5,33 @@ use memds_proto::memds_api_grpc::MemdsClient;
 
 use crate::util;
 
+pub fn bgsave(client: &MemdsClient) -> io::Result<()> {
+    let mut op = Operation::new();
+    op.otype = OpType::SRV_BGSAVE;
+
+    let mut req = RequestMsg::new();
+    req.ops.push(op);
+
+    let resp = util::rpc_exec(&client, &req)?;
+
+    if !resp.ok {
+        let msg = format!("Batch failure {}: {}", resp.err_code, resp.err_message);
+        return Err(Error::new(ErrorKind::Other, msg));
+    }
+
+    let results = resp.get_results();
+    assert!(results.len() == 1);
+
+    let result = &results[0];
+    if !result.ok {
+        let msg = format!("dbsize: {}", result.err_message);
+        return Err(Error::new(ErrorKind::Other, msg));
+    }
+
+    println!("ok");
+    Ok(())
+}
+
 pub fn dbsize(client: &MemdsClient) -> io::Result<()> {
     let mut op = Operation::new();
     op.otype = OpType::SRV_DBSIZE;
@@ -93,6 +120,10 @@ pub fn time(client: &MemdsClient) -> io::Result<()> {
 
 pub mod args {
     use clap::{App, SubCommand};
+
+    pub fn bgsave() -> App<'static, 'static> {
+        SubCommand::with_name("bgsave").about("Server.BGSave: Dump entire database to filesystem")
+    }
 
     pub fn dbsize() -> App<'static, 'static> {
         SubCommand::with_name("dbsize")
