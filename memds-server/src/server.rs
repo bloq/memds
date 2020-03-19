@@ -1,8 +1,19 @@
+use bytes::BytesMut;
+use nix::unistd::{fork, ForkResult};
 use std::collections::HashMap;
+use std::fs::File;
+use std::io::Write;
 use std::time::{Duration, SystemTime};
+use tokio_util::codec::Encoder;
 
-use memds_proto::memds_api::{CountRes, OpResult, OpType, TimeRes};
-use memds_proto::Atom;
+use crate::keys;
+use memds_proto::memds_api::{
+    CountRes, MemdsMessage, MemdsMessage_MsgType, OpResult, OpType, TimeRes,
+};
+use memds_proto::util::result_err;
+use memds_proto::{Atom, MemdsCodec};
+
+const EXPORT_FN: &'static str = "memds-export.dat";
 
 fn systime() -> Duration {
     SystemTime::now()
@@ -55,6 +66,77 @@ pub fn time() -> OpResult {
     op_res.set_srv_time(time_res);
 
     op_res
+}
+
+pub fn bgsave(db: &mut HashMap<Vec<u8>, Atom>) -> OpResult {
+    match fork() {
+        Ok(ForkResult::Parent { child: _, .. }) => {
+            // standard operation result assignment & final return
+            let mut op_res = OpResult::new();
+
+            op_res.ok = true;
+            op_res.otype = OpType::SRV_BGSAVE;
+
+            return op_res;
+        }
+        Ok(ForkResult::Child) => {}
+
+        Err(_) => {
+            return result_err(-500, "Internal error - fork");
+        }
+    }
+
+    // child continues...
+
+    let f_res = File::create(EXPORT_FN);
+    if f_res.is_err() {
+        println!("Internal error I/O - create");
+        std::process::exit(1);
+    }
+    let mut f = f_res.unwrap();
+    let mut codec = MemdsCodec::new();
+
+    for key in db.keys() {
+        // serialize key+value into protobuf message
+        let dbv = keys::element_dbv(db, key).unwrap();
+        let mut msg = MemdsMessage::new();
+        msg.mtype = MemdsMessage_MsgType::DBVAL;
+        msg.set_dbv(dbv);
+
+        // encode message into checksummed stream
+        let msg_raw = &mut BytesMut::new();
+        codec.encode(msg, msg_raw).unwrap();
+
+        // write packet to file
+        let res = f.write_all(msg_raw);
+        if res.is_err() {
+            println!("Internal error I/O - write");
+            std::process::exit(1);
+        }
+    }
+
+    // stream terminator
+    let mut end_msg = MemdsMessage::new();
+    end_msg.mtype = MemdsMessage_MsgType::END;
+
+    // encode terminator message into checksummed stream
+    let end_msg_raw = &mut BytesMut::new();
+    codec.encode(end_msg, end_msg_raw).unwrap();
+
+    // write terminating packet to file
+    let res = f.write_all(end_msg_raw);
+    if res.is_err() {
+        println!("Internal error I/O - write end");
+        std::process::exit(1);
+    }
+
+    // flush to disk
+    if f.sync_data().is_err() {
+        println!("Internal error I/O - sync");
+        std::process::exit(1);
+    }
+
+    std::process::exit(0);
 }
 
 #[cfg(test)]

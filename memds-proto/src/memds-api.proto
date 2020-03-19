@@ -132,6 +132,8 @@ enum OpType {
   KEYS_EXIST = 11;
   KEYS_RENAME = 13;
   KEYS_TYPE = 12;
+  KEY_DUMP = 14;
+  KEY_RESTORE = 15;
 
   LIST_PUSH = 20;
   LIST_POP = 21;
@@ -148,6 +150,7 @@ enum OpType {
   SET_UNION = 56;
   SET_MOVE = 58;
 
+  SRV_BGSAVE = 44;
   SRV_DBSIZE = 41;
   SRV_FLUSHDB = 42;
   SRV_FLUSHALL = 43;
@@ -208,5 +211,24 @@ message ResponseMsg {
   string err_message = 3;	// error message, if !ok
 
   repeated OpResult results = 4;
+}
+
+message DbValue {
+  AtomType typ = 1;
+  bytes key = 2;
+
+  bytes str = 3;
+  repeated bytes elements = 4;
+}
+
+message MemdsMessage {
+  enum MsgType {
+    NULLMSG = 0;
+    DBVAL = 1;
+    END = 2;
+  }
+
+  MsgType mtype = 1;
+  DbValue dbv = 2;
 }
 

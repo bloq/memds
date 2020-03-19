@@ -1,10 +1,14 @@
 use std::collections::HashMap;
+use std::collections::HashSet;
 
+use bytes::{BufMut, Bytes, BytesMut};
 use memds_proto::memds_api::{
-    AtomType, CountRes, KeyListOp, KeyOp, KeyRenameOp, OpResult, OpType, TypeRes,
+    AtomType, CountRes, DbValue, KeyListOp, KeyOp, KeyRenameOp, MemdsMessage, MemdsMessage_MsgType,
+    OpResult, OpType, StrGetRes, StrSetOp, TypeRes,
 };
 use memds_proto::util::result_err;
-use memds_proto::Atom;
+use memds_proto::{Atom, MemdsCodec};
+use tokio_util::codec::{Decoder, Encoder};
 
 pub fn del_exist(db: &mut HashMap<Vec<u8>, Atom>, req: &KeyListOp, remove_item: bool) -> OpResult {
     let mut count: u64 = 0;
@@ -103,10 +107,140 @@ pub fn typ(db: &mut HashMap<Vec<u8>, Atom>, req: &KeyOp) -> OpResult {
     op_res
 }
 
+pub fn element_dbv(db: &HashMap<Vec<u8>, Atom>, key: &[u8]) -> Option<DbValue> {
+    // create result DbValue
+    let mut dbv = DbValue::new();
+    dbv.set_key(key.to_vec());
+
+    // encode DbValue value
+    match db.get(key) {
+        None => return None,
+
+        // match type
+        Some(atom) => match atom {
+            Atom::String(s) => {
+                dbv.typ = AtomType::STRING;
+                dbv.set_str(s.clone());
+            }
+            Atom::List(l) => {
+                dbv.typ = AtomType::LIST;
+                for elem in l.iter() {
+                    dbv.elements.push(elem.clone());
+                }
+            }
+            Atom::Set(st) => {
+                dbv.typ = AtomType::SET;
+                for elem in st.iter() {
+                    dbv.elements.push(elem.clone());
+                }
+            }
+        },
+    };
+
+    Some(dbv)
+}
+
+pub fn dump(db: &mut HashMap<Vec<u8>, Atom>, req: &KeyOp) -> OpResult {
+    // create result DbValue
+    let dbv = {
+        match element_dbv(db, req.get_key()) {
+            None => {
+                return result_err(-404, "Not Found");
+            }
+            Some(dbv) => dbv,
+        }
+    };
+
+    // encode DbValue wrapper message
+    let mut msg = MemdsMessage::new();
+    msg.mtype = MemdsMessage_MsgType::DBVAL;
+    msg.set_dbv(dbv);
+
+    // encode to wire protocol using tokio codec
+    let mut codec = MemdsCodec::new();
+    let msg_raw = &mut BytesMut::new();
+    codec.encode(msg, msg_raw).unwrap();
+
+    // encode wire bytes into StrGetRes result bytes
+    let mut get_res = StrGetRes::new();
+    get_res.set_value(msg_raw.to_vec());
+
+    // standard operation result assignment & final return
+    let mut op_res = OpResult::new();
+
+    op_res.ok = true;
+    op_res.otype = OpType::KEY_DUMP;
+    op_res.set_get(get_res);
+
+    op_res
+}
+
+pub fn restore(db: &mut HashMap<Vec<u8>, Atom>, req: &StrSetOp) -> OpResult {
+    let msg = {
+        let mut codec = MemdsCodec::new();
+        let buf = Bytes::from(req.value.clone());
+        let msg_raw = &mut BytesMut::new();
+        msg_raw.put(buf);
+        match codec.decode(msg_raw) {
+            Err(_) => {
+                return result_err(-400, "Deser failed");
+            }
+            Ok(None) => {
+                return result_err(-400, "Deser empty");
+            }
+            Ok(Some(dec_msg)) => {
+                if (dec_msg.mtype != MemdsMessage_MsgType::DBVAL) || (!dec_msg.has_dbv()) {
+                    return result_err(-400, "not dbv");
+                }
+
+                dec_msg
+            }
+        }
+    };
+    let dbv = msg.get_dbv();
+    let key = {
+        if req.key.len() > 0 {
+            &req.key
+        } else {
+            &dbv.key
+        }
+    };
+    let value = match dbv.typ {
+        AtomType::NOTYPE => Atom::String(b"".to_vec()),
+        AtomType::STRING => Atom::String(dbv.get_str().to_vec()),
+        AtomType::LIST => {
+            let mut v = Vec::new();
+            for elem in dbv.elements.iter() {
+                v.push(elem.to_vec());
+            }
+            Atom::List(v)
+        }
+        AtomType::SET => {
+            let mut hs = HashSet::new();
+            for elem in dbv.elements.iter() {
+                hs.insert(elem.to_vec());
+            }
+            Atom::Set(hs)
+        }
+    };
+
+    db.insert(key.to_vec(), value);
+
+    // standard operation result assignment & final return
+    let mut op_res = OpResult::new();
+
+    op_res.ok = true;
+    op_res.otype = OpType::KEY_RESTORE;
+
+    op_res
+}
+
 #[cfg(test)]
 mod tests {
     use crate::{keys, string};
-    use memds_proto::memds_api::{AtomType, KeyListOp, KeyOp, KeyRenameOp, OpType, StrGetOp};
+    use memds_proto::memds_api::{
+        AtomType, KeyListOp, KeyOp, KeyRenameOp, OpType, StrGetOp, StrSetOp,
+    };
     use memds_proto::Atom;
     use std::collections::HashMap;
 
@@ -218,6 +352,45 @@ mod tests {
         // get "food" == found
         let mut req = StrGetOp::new();
         req.set_key(b"food".to_vec());
+
+        let res = string::get(&mut db, &req, OpType::STR_GET);
+
+        assert_eq!(res.ok, true);
+
+        let get_res = res.get_get();
+        assert_eq!(get_res.value, b"bar".to_vec());
+    }
+
+    #[test]
+    fn dump_string() {
+        let mut db = get_test_db();
+
+        // dump (serialize) string
+        let mut req = KeyOp::new();
+        req.set_key(b"foo".to_vec());
+
+        let res = keys::dump(&mut db, &req);
+
+        assert_eq!(res.ok, true);
+        assert_eq!(res.otype, OpType::KEY_DUMP);
+        assert!(res.has_get());
+
+        let get_res = res.get_get();
+        let enc_wire_data = get_res.get_value();
+
+        // restore to different key, and compare
+        let mut set_req = StrSetOp::new();
+        set_req.set_key(b"foo2".to_vec());
+        set_req.set_value(enc_wire_data.to_vec());
+
+        let res = keys::restore(&mut db, &set_req);
+
+        assert_eq!(res.ok, true);
+        assert_eq!(res.otype, OpType::KEY_RESTORE);
+
+        // get "foo2" == "bar"
+        let mut req = StrGetOp::new();
+        req.set_key(b"foo2".to_vec());
 
         let res = string::get(&mut db, &req, OpType::STR_GET);
 

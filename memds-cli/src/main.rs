@@ -25,9 +25,11 @@ fn main() -> io::Result<()> {
         .version(VERSION)
         .about("Memds CLI")
         .subcommand(keys::args::del())
+        .subcommand(keys::args::dump())
         .subcommand(keys::args::exists())
         .subcommand(keys::args::rename())
         .subcommand(keys::args::renamenx())
+        .subcommand(keys::args::restore())
         .subcommand(keys::args::typ())
         .subcommand(list::args::lindex())
         .subcommand(list::args::llen())
@@ -37,6 +39,7 @@ fn main() -> io::Result<()> {
         .subcommand(list::args::rpop())
         .subcommand(list::args::rpush())
         .subcommand(list::args::rpushx())
+        .subcommand(server::args::bgsave())
         .subcommand(server::args::dbsize())
         .subcommand(server::args::flushall())
         .subcommand(server::args::flushdb())
@@ -78,6 +81,7 @@ fn main() -> io::Result<()> {
             let value = matches.value_of("value").unwrap();
             string::set(&client, key, value, false, true, false)
         }
+        ("bgsave", Some(_matches)) => server::bgsave(&client),
         ("dbsize", Some(_matches)) => server::dbsize(&client),
         ("decr", Some(matches)) => {
             let key = matches.value_of("key").unwrap();
@@ -91,6 +95,10 @@ fn main() -> io::Result<()> {
         ("del", Some(matches)) => {
             let keys: Vec<_> = matches.values_of("key").unwrap().collect();
             keys::del_exist(&client, &keys, true)
+        }
+        ("dump", Some(matches)) => {
+            let key = matches.value_of("key").unwrap();
+            keys::dump(&client, key)
         }
         ("exists", Some(matches)) => {
             let keys: Vec<_> = matches.values_of("key").unwrap().collect();
@@ -154,6 +162,11 @@ fn main() -> io::Result<()> {
             let old_key = matches.value_of("old_key").unwrap();
             let new_key = matches.value_of("new_key").unwrap();
             keys::rename(&client, old_key, new_key, true)
+        }
+        ("restore", Some(matches)) => {
+            let key = matches.value_of("key");
+            let restore_fn = matches.value_of("file").unwrap();
+            keys::restore(&client, key, restore_fn)
         }
         ("rpop", Some(matches)) => {
             let key = matches.value_of("key").unwrap();
