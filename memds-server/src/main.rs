@@ -15,6 +15,7 @@ use clap::value_t;
 use futures::sync::oneshot;
 use futures::Future;
 use grpcio::{Environment, RpcContext, ServerBuilder, UnarySink};
+use serde_derive::Deserialize;
 
 use memds_proto::memds_api::{OpResult, OpType, RequestMsg, ResponseMsg};
 use memds_proto::memds_api_grpc::{self, Memds};
@@ -282,9 +283,18 @@ impl Memds for MemdsService {
     }
 }
 
-fn main() {
-    let env = Arc::new(Environment::new(1));
+#[derive(Deserialize)]
+struct Config {
+    network: NetworkConfig,
+}
 
+#[derive(Deserialize)]
+struct NetworkConfig {
+    bind_addr: String,
+    bind_port: u16,
+}
+
+fn get_config() -> Config {
     // parse command line
     let cli_matches = clap::App::new(APPNAME)
         .version(VERSION)
@@ -313,6 +323,19 @@ fn main() {
     let bind_addr = cli_matches.value_of("bind-addr").unwrap_or(DEF_BIND_ADDR);
     let bind_port = value_t!(cli_matches, "bind-port", u16).unwrap_or(memds_proto::DEF_PORT);
 
+    Config {
+        network: NetworkConfig {
+            bind_addr: bind_addr.to_string(),
+            bind_port: bind_port,
+        },
+    }
+}
+
+fn main() {
+    let env = Arc::new(Environment::new(1));
+
+    let cfg = get_config();
+
     let mut initial_db = HashMap::new();
     initial_db.insert(b"foo".to_vec(), Atom::String(b"bar".to_vec()));
 
@@ -321,7 +344,7 @@ fn main() {
     });
     let mut server = ServerBuilder::new(env)
         .register_service(service)
-        .bind(bind_addr, bind_port)
+        .bind(cfg.network.bind_addr, cfg.network.bind_port)
         .build()
         .unwrap();
     server.start();
