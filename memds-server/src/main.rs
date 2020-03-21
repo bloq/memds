@@ -15,6 +15,7 @@ use clap::value_t;
 use futures::sync::oneshot;
 use futures::Future;
 use grpcio::{Environment, RpcContext, ServerBuilder, UnarySink};
+use serde_derive::Deserialize;
 
 use memds_proto::memds_api::{OpResult, OpType, RequestMsg, ResponseMsg};
 use memds_proto::memds_api_grpc::{self, Memds};
@@ -30,6 +31,7 @@ mod string;
 const APPNAME: &'static str = "memds-server";
 const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 const DEF_BIND_ADDR: &'static str = "127.0.0.1";
+const DEF_CONFIG_FN: &'static str = "memds.conf";
 
 /// The in-memory database shared amongst all clients.
 ///
@@ -282,9 +284,27 @@ impl Memds for MemdsService {
     }
 }
 
-fn main() {
-    let env = Arc::new(Environment::new(1));
+#[derive(Deserialize)]
+struct TomlConfig {
+    network: Option<TomlNetworkConfig>,
+}
 
+#[derive(Deserialize)]
+struct TomlNetworkConfig {
+    bind_addr: Option<String>,
+    bind_port: Option<u16>,
+}
+
+struct Config {
+    network: NetworkConfig,
+}
+
+struct NetworkConfig {
+    bind_addr: String,
+    bind_port: u16,
+}
+
+fn get_config() -> Config {
     // parse command line
     let cli_matches = clap::App::new(APPNAME)
         .version(VERSION)
@@ -308,10 +328,73 @@ fn main() {
                 ))
                 .takes_value(true),
         )
+        .arg(
+            clap::Arg::with_name("config")
+                .short("c")
+                .long("config")
+                .value_name("TOML-FILE")
+                .help(&format!(
+                    "Read configuration file (default: {})",
+                    DEF_CONFIG_FN
+                ))
+                .takes_value(true),
+        )
         .get_matches();
 
-    let bind_addr = cli_matches.value_of("bind-addr").unwrap_or(DEF_BIND_ADDR);
-    let bind_port = value_t!(cli_matches, "bind-port", u16).unwrap_or(memds_proto::DEF_PORT);
+    let config_fn = cli_matches.value_of("config").unwrap_or(DEF_CONFIG_FN);
+
+    // read config file
+    let cfg_res = std::fs::read_to_string(config_fn);
+    let f_cfg = {
+        // read config, or create default
+        let mut f_cfg: TomlConfig;
+        if cfg_res.is_ok() {
+            f_cfg = toml::from_str(&cfg_res.unwrap()).unwrap();
+        } else {
+            f_cfg = TomlConfig { network: None };
+        }
+
+        // if network section missing, create default one
+        if f_cfg.network.is_none() {
+            f_cfg.network = Some(TomlNetworkConfig {
+                bind_addr: None,
+                bind_port: None,
+            });
+        }
+
+        let mut f_net_cfg = f_cfg.network.as_mut().unwrap();
+
+        // CLI arg overrides config file value; else if missing, provide def.
+        if cli_matches.is_present("bind-addr") {
+            f_net_cfg.bind_addr = Some(cli_matches.value_of("bind-addr").unwrap().to_string());
+        } else if f_net_cfg.bind_addr.is_none() {
+            f_net_cfg.bind_addr = Some(DEF_BIND_ADDR.to_string());
+        }
+
+        // CLI arg overrides config file value; else if missing, provide def.
+        if cli_matches.is_present("bind-port") {
+            f_net_cfg.bind_port = Some(value_t!(cli_matches, "bind-port", u16).unwrap());
+        } else if f_net_cfg.bind_port.is_none() {
+            f_net_cfg.bind_port = Some(memds_proto::DEF_PORT);
+        }
+
+        f_cfg
+    };
+
+    let f_net_cfg = f_cfg.network.unwrap();
+
+    Config {
+        network: NetworkConfig {
+            bind_addr: f_net_cfg.bind_addr.unwrap(),
+            bind_port: f_net_cfg.bind_port.unwrap(),
+        },
+    }
+}
+
+fn main() {
+    let env = Arc::new(Environment::new(1));
+
+    let cfg = get_config();
 
     let mut initial_db = HashMap::new();
     initial_db.insert(b"foo".to_vec(), Atom::String(b"bar".to_vec()));
@@ -321,7 +404,7 @@ fn main() {
     });
     let mut server = ServerBuilder::new(env)
         .register_service(service)
-        .bind(bind_addr, bind_port)
+        .bind(cfg.network.bind_addr, cfg.network.bind_port)
         .build()
         .unwrap();
     server.start();
