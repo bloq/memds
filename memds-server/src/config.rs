@@ -12,6 +12,7 @@ const DEF_CONFIG_FN: &'static str = "memds.conf";
 #[derive(Deserialize)]
 struct TomlConfig {
     network: Option<TomlNetworkConfig>,
+    fs: Option<TomlFsConfig>,
 }
 
 #[derive(Deserialize)]
@@ -20,13 +21,23 @@ struct TomlNetworkConfig {
     bind_port: Option<u16>,
 }
 
+#[derive(Deserialize)]
+struct TomlFsConfig {
+    import: Option<String>,
+}
+
 pub struct Config {
     pub network: NetworkConfig,
+    pub fs: FsConfig,
 }
 
 pub struct NetworkConfig {
     pub bind_addr: String,
     pub bind_port: u16,
+}
+
+pub struct FsConfig {
+    pub import: Option<String>,
 }
 
 pub fn get() -> Config {
@@ -64,6 +75,13 @@ pub fn get() -> Config {
                 ))
                 .takes_value(true),
         )
+        .arg(
+            clap::Arg::with_name("import")
+                .long("import")
+                .value_name("MEMDS-FILE")
+                .help("Import serialized database file")
+                .takes_value(true),
+        )
         .get_matches();
 
     let config_fn = cli_matches.value_of("config").unwrap_or(DEF_CONFIG_FN);
@@ -76,7 +94,10 @@ pub fn get() -> Config {
         if cfg_res.is_ok() {
             f_cfg = toml::from_str(&cfg_res.unwrap()).unwrap();
         } else {
-            f_cfg = TomlConfig { network: None };
+            f_cfg = TomlConfig {
+                network: None,
+                fs: None,
+            };
         }
 
         // if network section missing, create default one
@@ -85,6 +106,17 @@ pub fn get() -> Config {
                 bind_addr: None,
                 bind_port: None,
             });
+        }
+
+        // if fs section missing, create default one
+        if f_cfg.fs.is_none() {
+            f_cfg.fs = Some(TomlFsConfig { import: None });
+        }
+
+        let mut f_fs_cfg = f_cfg.fs.as_mut().unwrap();
+
+        if cli_matches.is_present("import") {
+            f_fs_cfg.import = Some(cli_matches.value_of("import").unwrap().to_string());
         }
 
         let mut f_net_cfg = f_cfg.network.as_mut().unwrap();
@@ -107,11 +139,15 @@ pub fn get() -> Config {
     };
 
     let f_net_cfg = f_cfg.network.unwrap();
+    let f_fs_cfg = f_cfg.fs.unwrap();
 
     Config {
         network: NetworkConfig {
             bind_addr: f_net_cfg.bind_addr.unwrap(),
             bind_port: f_net_cfg.bind_port.unwrap(),
+        },
+        fs: FsConfig {
+            import: f_fs_cfg.import,
         },
     }
 }

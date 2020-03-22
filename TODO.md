@@ -26,12 +26,6 @@
  - [ ] Protocol return values echo HTTP for want of a better practice.
  Update code to a better practice.
 
-## Big features
-
- - [x] Fork and export data
- - [ ] Import data dump
- - [ ] Write-ahead logging
-
 ## Bugs
 
  - [ ] BGSAVE leaves zombie processes.  Need to wait(2)

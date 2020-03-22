@@ -98,7 +98,7 @@ pub fn bgsave(db: &mut HashMap<Vec<u8>, Atom>) -> OpResult {
 
     for key in db.keys() {
         // serialize key+value into protobuf message
-        let dbv = keys::element_dbv(db, key).unwrap();
+        let dbv = keys::export_dbv(db, key).unwrap();
         let mut msg = MemdsMessage::new();
         msg.mtype = MemdsMessage_MsgType::DBVAL;
         msg.set_dbv(dbv);

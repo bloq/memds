@@ -107,7 +107,39 @@ pub fn typ(db: &mut HashMap<Vec<u8>, Atom>, req: &KeyOp) -> OpResult {
     op_res
 }
 
-pub fn element_dbv(db: &HashMap<Vec<u8>, Atom>, key: &[u8]) -> Option<DbValue> {
+pub fn import_dbv(db: &mut HashMap<Vec<u8>, Atom>, in_key: Option<&[u8]>, dbv: &DbValue) -> bool {
+    let key = match in_key {
+        None => &dbv.key,
+        Some(k) => k,
+    };
+
+    let value = match dbv.typ {
+        AtomType::NOTYPE => {
+            return false;
+        }
+        AtomType::STRING => Atom::String(dbv.get_str().to_vec()),
+        AtomType::LIST => {
+            let mut v = Vec::new();
+            for elem in dbv.elements.iter() {
+                v.push(elem.to_vec());
+            }
+            Atom::List(v)
+        }
+        AtomType::SET => {
+            let mut hs = HashSet::new();
+            for elem in dbv.elements.iter() {
+                hs.insert(elem.to_vec());
+            }
+            Atom::Set(hs)
+        }
+    };
+
+    db.insert(key.to_vec(), value);
+
+    true
+}
+
+pub fn export_dbv(db: &HashMap<Vec<u8>, Atom>, key: &[u8]) -> Option<DbValue> {
     // create result DbValue
     let mut dbv = DbValue::new();
     dbv.set_key(key.to_vec());
@@ -143,7 +175,7 @@ pub fn element_dbv(db: &HashMap<Vec<u8>, Atom>, key: &[u8]) -> Option<DbValue> {
 pub fn dump(db: &mut HashMap<Vec<u8>, Atom>, req: &KeyOp) -> OpResult {
     // create result DbValue
     let dbv = {
-        match element_dbv(db, req.get_key()) {
+        match export_dbv(db, req.get_key()) {
             None => {
                 return result_err(-404, "Not Found");
             }
@@ -197,34 +229,16 @@ pub fn restore(db: &mut HashMap<Vec<u8>, Atom>, req: &StrSetOp) -> OpResult {
             }
         }
     };
-    let dbv = msg.get_dbv();
-    let key = {
+
+    let key_opt = {
         if req.key.len() > 0 {
-            &req.key
+            Some(&req.key[..])
         } else {
-            &dbv.key
-        }
-    };
-    let value = match dbv.typ {
-        AtomType::NOTYPE => Atom::String(b"".to_vec()),
-        AtomType::STRING => Atom::String(dbv.get_str().to_vec()),
-        AtomType::LIST => {
-            let mut v = Vec::new();
-            for elem in dbv.elements.iter() {
-                v.push(elem.to_vec());
-            }
-            Atom::List(v)
-        }
-        AtomType::SET => {
-            let mut hs = HashSet::new();
-            for elem in dbv.elements.iter() {
-                hs.insert(elem.to_vec());
-            }
-            Atom::Set(hs)
+            None
         }
     };
 
-    db.insert(key.to_vec(), value);
+    import_dbv(db, key_opt, msg.get_dbv());
 
     // standard operation result assignment & final return
     let mut op_res = OpResult::new();

@@ -275,7 +275,7 @@ checksum = "3728d817d99e5ac407411fa471ff9800a778d88a24685968b36824eaf4bee400"
 
 [[package]]
 name = "memds-cli"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "clap",
  "futures",
@@ -287,7 +287,7 @@ dependencies = [
 
 [[package]]
 name = "memds-proto"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "bytes",
  "crc",
@@ -301,7 +301,7 @@ dependencies = [
 
 [[package]]
 name = "memds-server"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "bytes",
  "clap",
