@@ -11,7 +11,14 @@ memds is Version 3:  Formally model the network protocol and database namespace.
 
 ## Model & design comparisons
 
-(note:  the current code is still a work in progress, in terms of implementing this)
+### Model caveats
+
+The current code is still a work in progress, in terms of implementing the models described below.   See the following markdown docs for more detailed information:
+* [TODO](TODO.md)
+* [Detailed redis feature comparison](compare.md)
+* [Other project notes](notes.md)
+
+### Old-vs-New
 
 Old redis model:
 ```
@@ -22,11 +29,11 @@ New memds model:
      [database key] [key] [abstract data type, possibly with its own hierarchy]
 ```
 
-Old redis protocol hierarchy:  All ADTs overloaded in a single command namespace ("HLEN","LLEN").
-New memds protocol hierarchy:  Each ADT in its own class-specific namespace.  (like "HASH.LEN","LIST.LEN", but with integer identifiers).
+* Old redis protocol hierarchy:  All ADTs overloaded in a single command namespace ("HLEN","LLEN").
+* New memds protocol hierarchy:  Each ADT in its own class-specific namespace.  (like "HASH.LEN","LIST.LEN", but with integer identifiers).
 
-Old redis network protocol:  Custom protocol, requiring custom clients across N programming languages.
-New memds network protocol:  Protobuf schema, automatically generating correct, compliant, fast client codecs for many languages.
+* Old redis network protocol:  Custom protocol, requiring custom clients across N programming languages.
+* New memds network protocol:  Protobuf schema, automatically generating correct, compliant, fast client codecs for many languages.
 
 ## Components
 
