@@ -11,7 +11,7 @@
  - [x] ADT: Sets
  - [x] ADT: Strings
  - [x] I/O: Fork and dump to fs
- - [ ] I/O: Import dump
+ - [x] I/O: Import dump
  - [ ] I/O: Write-ahead logging
  - [ ] Memory limits
  - [ ] Network: Clusters
