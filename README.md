@@ -9,6 +9,12 @@ Looking through software history, we can consider [memcached](https://memcached.
 
 memds is Version 3:  Formally model the network protocol and database namespace.  Represent abstract data types as CLASS.METHOD internal Remote Procedure Calls (RPCs), batched together as a bytecode-like stream of database mutation operations.
 
+## Status
+
+This project is alpha status; brand new; wet cement.  Proceed with with that caveat in mind.
+
+Contributors via Pull Request are welcome.
+
 ## Model & design comparisons
 
 ### Model caveats
