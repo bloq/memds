@@ -15,7 +15,6 @@
 
 use bytes::{Buf, BufMut, BytesMut};
 use crc::{crc32, Hasher32};
-use protobuf::parse_from_bytes;
 use protobuf::Message;
 use std::io::Cursor;
 use tokio_util::codec::{Decoder, Encoder};
@@ -122,7 +121,7 @@ impl MemdsCodec {
         }
 
         // execute protobuf decode of full frame
-        match parse_from_bytes::<MemdsMessage>(&data) {
+        match MemdsMessage::parse_from_bytes(&data) {
             Err(_e) => Err(MemdsError::ProtobufDecode),
             Ok(req) => {
                 self.state = DecodeState::Head;

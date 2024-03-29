@@ -113,13 +113,13 @@ pub fn get() -> Config {
             f_cfg.fs = Some(TomlFsConfig { import: None });
         }
 
-        let mut f_fs_cfg = f_cfg.fs.as_mut().unwrap();
+        let f_fs_cfg = f_cfg.fs.as_mut().unwrap();
 
         if cli_matches.is_present("import") {
             f_fs_cfg.import = Some(cli_matches.value_of("import").unwrap().to_string());
         }
 
-        let mut f_net_cfg = f_cfg.network.as_mut().unwrap();
+        let f_net_cfg = f_cfg.network.as_mut().unwrap();
 
         // CLI arg overrides config file value; else if missing, provide def.
         if cli_matches.is_present("bind-addr") {

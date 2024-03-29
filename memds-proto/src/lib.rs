@@ -12,9 +12,9 @@ pub enum Atom {
     Set(HashSet<Vec<u8>>),
 }
 
-pub mod util;
 pub mod memds_api;
 pub mod memds_api_grpc;
+pub mod util;
 
 pub use codec::MemdsCodec;
 pub use error::MemdsError;
