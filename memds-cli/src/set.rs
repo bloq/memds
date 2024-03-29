@@ -244,7 +244,7 @@ pub fn mov(client: &MemdsClient, src_key: &str, dest_key: &str, member: &str) ->
 pub mod args {
     use clap::{App, Arg, SubCommand};
 
-    pub fn sadd() -> App<'static, 'static> {
+    pub fn sadd() -> App<'static> {
         SubCommand::with_name("sadd")
             .about("Set.Add: Store items in set")
             .arg(
@@ -260,7 +260,7 @@ pub mod args {
             )
     }
 
-    pub fn scard() -> App<'static, 'static> {
+    pub fn scard() -> App<'static> {
         SubCommand::with_name("scard")
             .about("Set.Card: Set metadata")
             .arg(
@@ -270,7 +270,7 @@ pub mod args {
             )
     }
 
-    pub fn sdiff() -> App<'static, 'static> {
+    pub fn sdiff() -> App<'static> {
         SubCommand::with_name("sdiff")
             .about("Set.Diff: Diff sets")
             .arg(
@@ -285,7 +285,7 @@ pub mod args {
             )
     }
 
-    pub fn sdiffstore() -> App<'static, 'static> {
+    pub fn sdiffstore() -> App<'static> {
         SubCommand::with_name("sdiffstore")
             .about("Set.DiffStore: Diff sets, and store result")
             .arg(
@@ -305,7 +305,7 @@ pub mod args {
             )
     }
 
-    pub fn sinter() -> App<'static, 'static> {
+    pub fn sinter() -> App<'static> {
         SubCommand::with_name("sinter")
             .about("Set.Intersect: Intersect sets")
             .arg(
@@ -320,7 +320,7 @@ pub mod args {
             )
     }
 
-    pub fn sinterstore() -> App<'static, 'static> {
+    pub fn sinterstore() -> App<'static> {
         SubCommand::with_name("sinterstore")
             .about("Set.IntersectStore: Intersect sets, and store result")
             .arg(
@@ -340,7 +340,7 @@ pub mod args {
             )
     }
 
-    pub fn sismember() -> App<'static, 'static> {
+    pub fn sismember() -> App<'static> {
         SubCommand::with_name("sismember")
             .about("Set.IsMember: Test existence of items in a set")
             .arg(
@@ -356,7 +356,7 @@ pub mod args {
             )
     }
 
-    pub fn smembers() -> App<'static, 'static> {
+    pub fn smembers() -> App<'static> {
         SubCommand::with_name("smembers")
             .about("Set.Members: Query all Set members")
             .arg(
@@ -366,7 +366,7 @@ pub mod args {
             )
     }
 
-    pub fn smove() -> App<'static, 'static> {
+    pub fn smove() -> App<'static> {
         SubCommand::with_name("smove")
             .about("Set.Move: Move member between sets")
             .arg(Arg::with_name("src_key").help("Source set").required(true))
@@ -382,7 +382,7 @@ pub mod args {
             )
     }
 
-    pub fn srem() -> App<'static, 'static> {
+    pub fn srem() -> App<'static> {
         SubCommand::with_name("srem")
             .about("Set.Remove: Remove items from set")
             .arg(
@@ -398,7 +398,7 @@ pub mod args {
             )
     }
 
-    pub fn sunion() -> App<'static, 'static> {
+    pub fn sunion() -> App<'static> {
         SubCommand::with_name("sunion")
             .about("Set.Union: Union sets")
             .arg(
@@ -413,7 +413,7 @@ pub mod args {
             )
     }
 
-    pub fn sunionstore() -> App<'static, 'static> {
+    pub fn sunionstore() -> App<'static> {
         SubCommand::with_name("sunionstore")
             .about("Set.UnionStore: Union sets, and store result")
             .arg(

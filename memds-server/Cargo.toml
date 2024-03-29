@@ -12,11 +12,11 @@ futures = "0.1"
 grpcio = { version = "0.4", features = ["openssl"] }
 protobuf = "~2"
 log = "0.4"
-clap = "2.33"
+clap = "3"
 tokio = { version = "0.2", features = ["full"] }
 tokio-util = { version = "0.2", features = ["full"] }
 bytes = "0.5"
 nix = "0.17"
 serde = "1.0"
 serde_derive = "1.0"
-toml = "0.5"
+toml = "0.8"

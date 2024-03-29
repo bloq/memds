@@ -121,24 +121,24 @@ pub fn time(client: &MemdsClient) -> io::Result<()> {
 pub mod args {
     use clap::{App, SubCommand};
 
-    pub fn bgsave() -> App<'static, 'static> {
+    pub fn bgsave() -> App<'static> {
         SubCommand::with_name("bgsave").about("Server.BGSave: Dump entire database to filesystem")
     }
 
-    pub fn dbsize() -> App<'static, 'static> {
+    pub fn dbsize() -> App<'static> {
         SubCommand::with_name("dbsize")
             .about("Server.DBSize: Retrieve item count of current database")
     }
 
-    pub fn flushdb() -> App<'static, 'static> {
+    pub fn flushdb() -> App<'static> {
         SubCommand::with_name("flushdb").about("Server.FlushDB: Empty current database")
     }
 
-    pub fn flushall() -> App<'static, 'static> {
+    pub fn flushall() -> App<'static> {
         SubCommand::with_name("flushall").about("Server.FlushAll: Empty all databases")
     }
 
-    pub fn time() -> App<'static, 'static> {
+    pub fn time() -> App<'static> {
         SubCommand::with_name("time").about("Server.Time: Retrieve server time")
     }
 }

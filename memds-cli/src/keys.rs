@@ -192,7 +192,7 @@ pub fn restore(client: &MemdsClient, key: Option<&str>, restore_fn: &str) -> io:
 pub mod args {
     use clap::{App, Arg, SubCommand};
 
-    pub fn del() -> App<'static, 'static> {
+    pub fn del() -> App<'static> {
         SubCommand::with_name("del")
             .about("Keys.Del: Delete listed keys")
             .arg(
@@ -203,13 +203,13 @@ pub mod args {
             )
     }
 
-    pub fn dump() -> App<'static, 'static> {
+    pub fn dump() -> App<'static> {
         SubCommand::with_name("dump")
             .about("Keys.Dump: Dump listed key")
             .arg(Arg::with_name("key").help("Key to dump").required(true))
     }
 
-    pub fn exists() -> App<'static, 'static> {
+    pub fn exists() -> App<'static> {
         SubCommand::with_name("exists")
             .about("Keys.Exists: Count existing listed keys")
             .arg(
@@ -220,7 +220,7 @@ pub mod args {
             )
     }
 
-    pub fn rename() -> App<'static, 'static> {
+    pub fn rename() -> App<'static> {
         SubCommand::with_name("rename")
             .about("Keys.Rename: Rename item key")
             .arg(
@@ -235,7 +235,7 @@ pub mod args {
             )
     }
 
-    pub fn renamenx() -> App<'static, 'static> {
+    pub fn renamenx() -> App<'static> {
         SubCommand::with_name("renamenx")
             .about("Keys.RenameNX: Rename item key, iff new key does not exist")
             .arg(
@@ -250,7 +250,7 @@ pub mod args {
             )
     }
 
-    pub fn restore() -> App<'static, 'static> {
+    pub fn restore() -> App<'static> {
         SubCommand::with_name("restore")
             .about("Keys.Restore: Restore item from dumpfile")
             .arg(
@@ -261,13 +261,13 @@ pub mod args {
             .arg(
                 Arg::with_name("key")
                     .help("Key of item to query")
-                    .short("k")
+                    .short('k')
                     .long("key")
                     .value_name("string"),
             )
     }
 
-    pub fn typ() -> App<'static, 'static> {
+    pub fn typ() -> App<'static> {
         SubCommand::with_name("type")
             .about("Keys.Type: Query item data type")
             .arg(

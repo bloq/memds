@@ -194,7 +194,7 @@ pub fn strlen(client: &MemdsClient, key: &str) -> io::Result<()> {
 pub mod args {
     use clap::{App, Arg, SubCommand};
 
-    pub fn append() -> App<'static, 'static> {
+    pub fn append() -> App<'static> {
         SubCommand::with_name("append")
             .about("String.Append: Append to item")
             .arg(
@@ -209,7 +209,7 @@ pub mod args {
             )
     }
 
-    pub fn decr() -> App<'static, 'static> {
+    pub fn decr() -> App<'static> {
         SubCommand::with_name("decr")
             .about("String.Decr: Decrement numeric item by 1")
             .arg(
@@ -219,7 +219,7 @@ pub mod args {
             )
     }
 
-    pub fn decrby() -> App<'static, 'static> {
+    pub fn decrby() -> App<'static> {
         SubCommand::with_name("decrby")
             .about("String.DecrBy: Decrement numeric item")
             .arg(
@@ -234,7 +234,7 @@ pub mod args {
             )
     }
 
-    pub fn get() -> App<'static, 'static> {
+    pub fn get() -> App<'static> {
         SubCommand::with_name("get")
             .about("String.Get: Retrieve item")
             .arg(
@@ -244,7 +244,7 @@ pub mod args {
             )
     }
 
-    pub fn getrange() -> App<'static, 'static> {
+    pub fn getrange() -> App<'static> {
         SubCommand::with_name("getrange")
             .about("String.GetRange: Retrieve subset of item")
             .arg(
@@ -264,7 +264,7 @@ pub mod args {
             )
     }
 
-    pub fn getset() -> App<'static, 'static> {
+    pub fn getset() -> App<'static> {
         SubCommand::with_name("getset")
             .about("String.GetSet: Store item, return old value")
             .arg(
@@ -279,7 +279,7 @@ pub mod args {
             )
     }
 
-    pub fn incr() -> App<'static, 'static> {
+    pub fn incr() -> App<'static> {
         SubCommand::with_name("incr")
             .about("String.Incr: Increment numeric item by 1")
             .arg(
@@ -289,7 +289,7 @@ pub mod args {
             )
     }
 
-    pub fn incrby() -> App<'static, 'static> {
+    pub fn incrby() -> App<'static> {
         SubCommand::with_name("incrby")
             .about("String.IncrBy: Increment numeric item")
             .arg(
@@ -304,7 +304,7 @@ pub mod args {
             )
     }
 
-    pub fn set() -> App<'static, 'static> {
+    pub fn set() -> App<'static> {
         SubCommand::with_name("set")
             .about("String.Set: Store item")
             .arg(
@@ -319,7 +319,7 @@ pub mod args {
             )
     }
 
-    pub fn setnx() -> App<'static, 'static> {
+    pub fn setnx() -> App<'static> {
         SubCommand::with_name("setnx")
             .about("String.SetNX: Store item, if key does not exist")
             .arg(
@@ -334,7 +334,7 @@ pub mod args {
             )
     }
 
-    pub fn strlen() -> App<'static, 'static> {
+    pub fn strlen() -> App<'static> {
         SubCommand::with_name("strlen")
             .about("String.Strlen: Retrieve item length")
             .arg(

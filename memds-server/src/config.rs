@@ -42,37 +42,34 @@ pub struct FsConfig {
 
 pub fn get() -> Config {
     // parse command line
+    let bind_addr_help = format!("socket bind address (default: {})", DEF_BIND_ADDR);
+    let port_help = format!("socket bind port (default: {})", memds_proto::DEF_PORT);
+    let config_fn_help = format!("Read configuration file (default: {})", DEF_CONFIG_FN);
     let cli_matches = clap::App::new(APPNAME)
         .version(VERSION)
         .about("Memory Database Service")
         .arg(
             clap::Arg::with_name("bind-addr")
-                .short("a")
+                .short('a')
                 .long("bind-addr")
                 .value_name("IP-ADDRESS")
-                .help(&format!("socket bind address (default: {})", DEF_BIND_ADDR))
+                .help(&*bind_addr_help)
                 .takes_value(true),
         )
         .arg(
             clap::Arg::with_name("bind-port")
-                .short("p")
+                .short('p')
                 .long("bind-port")
                 .value_name("PORT")
-                .help(&format!(
-                    "socket bind port (default: {})",
-                    memds_proto::DEF_PORT
-                ))
+                .help(&*port_help)
                 .takes_value(true),
         )
         .arg(
             clap::Arg::with_name("config")
-                .short("c")
+                .short('c')
                 .long("config")
                 .value_name("TOML-FILE")
-                .help(&format!(
-                    "Read configuration file (default: {})",
-                    DEF_CONFIG_FN
-                ))
+                .help(&*config_fn_help)
                 .takes_value(true),
         )
         .arg(
@@ -113,13 +110,13 @@ pub fn get() -> Config {
             f_cfg.fs = Some(TomlFsConfig { import: None });
         }
 
-        let mut f_fs_cfg = f_cfg.fs.as_mut().unwrap();
+        let f_fs_cfg = f_cfg.fs.as_mut().unwrap();
 
         if cli_matches.is_present("import") {
             f_fs_cfg.import = Some(cli_matches.value_of("import").unwrap().to_string());
         }
 
-        let mut f_net_cfg = f_cfg.network.as_mut().unwrap();
+        let f_net_cfg = f_cfg.network.as_mut().unwrap();
 
         // CLI arg overrides config file value; else if missing, provide def.
         if cli_matches.is_present("bind-addr") {

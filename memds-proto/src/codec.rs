@@ -14,8 +14,7 @@
 //
 
 use bytes::{Buf, BufMut, BytesMut};
-use crc::{crc32, Hasher32};
-use protobuf::parse_from_bytes;
+use crc::{Crc, CRC_32_ISCSI};
 use protobuf::Message;
 use std::io::Cursor;
 use tokio_util::codec::{Decoder, Encoder};
@@ -110,11 +109,12 @@ impl MemdsCodec {
         let crc_buf = self.last_dec_crc.to_be_bytes();
 
         // build CRC for current frame
-        let mut digest = crc32::Digest::new(crc32::IEEE);
-        digest.write(&crc_buf);
-        digest.write(&self.hdr_buf);
-        digest.write(&data);
-        self.last_dec_crc = digest.sum32();
+        let crcer = Crc::<u32>::new(&CRC_32_ISCSI);
+        let mut digest = crcer.digest();
+        digest.update(&crc_buf);
+        digest.update(&self.hdr_buf);
+        digest.update(&data);
+        self.last_dec_crc = digest.finalize();
 
         // verify CRC matches expected
         if self.last_dec_crc != self.expect_crc {
@@ -122,7 +122,7 @@ impl MemdsCodec {
         }
 
         // execute protobuf decode of full frame
-        match parse_from_bytes::<MemdsMessage>(&data) {
+        match MemdsMessage::parse_from_bytes(&data) {
             Err(_e) => Err(MemdsError::ProtobufDecode),
             Ok(req) => {
                 self.state = DecodeState::Head;
@@ -180,11 +180,12 @@ impl Encoder for MemdsCodec {
         let crc_buf = self.last_enc_crc.to_be_bytes();
 
         // build CRC of current frame
-        let mut digest = crc32::Digest::new(crc32::IEEE);
-        digest.write(&crc_buf);
-        digest.write(&hdr_buf);
-        digest.write(&msg_bytes);
-        self.last_enc_crc = digest.sum32();
+        let crcer = Crc::<u32>::new(&CRC_32_ISCSI);
+        let mut digest = crcer.digest();
+        digest.update(&crc_buf);
+        digest.update(&hdr_buf);
+        digest.update(&msg_bytes);
+        self.last_enc_crc = digest.finalize();
 
         // assemble frame parts in linear buffer
         dst.reserve(HDR_SIZE + 4 + msg_len as usize);
