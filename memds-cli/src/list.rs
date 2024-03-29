@@ -161,7 +161,7 @@ pub fn push(
 pub mod args {
     use clap::{App, Arg, SubCommand};
 
-    pub fn lindex() -> App<'static, 'static> {
+    pub fn lindex() -> App<'static> {
         SubCommand::with_name("lindex")
             .about("List.Index: Query item at given index")
             .arg(
@@ -176,7 +176,7 @@ pub mod args {
             )
     }
 
-    pub fn rpop() -> App<'static, 'static> {
+    pub fn rpop() -> App<'static> {
         SubCommand::with_name("rpop")
             .about("List.RPop: Remove and return list end")
             .arg(
@@ -186,7 +186,7 @@ pub mod args {
             )
     }
 
-    pub fn lpop() -> App<'static, 'static> {
+    pub fn lpop() -> App<'static> {
         SubCommand::with_name("lpop")
             .about("List.LPop: Remove and return list head")
             .arg(
@@ -196,7 +196,7 @@ pub mod args {
             )
     }
 
-    pub fn llen() -> App<'static, 'static> {
+    pub fn llen() -> App<'static> {
         SubCommand::with_name("llen")
             .about("List.Length: List metadata: length")
             .arg(
@@ -206,7 +206,7 @@ pub mod args {
             )
     }
 
-    pub fn lpush() -> App<'static, 'static> {
+    pub fn lpush() -> App<'static> {
         SubCommand::with_name("lpush")
             .about("List.LPush: Store item at list head")
             .arg(
@@ -222,7 +222,7 @@ pub mod args {
             )
     }
 
-    pub fn lpushx() -> App<'static, 'static> {
+    pub fn lpushx() -> App<'static> {
         SubCommand::with_name("lpushx")
             .about("List.LPushX: Store item at list head, iff list exists")
             .arg(
@@ -238,7 +238,7 @@ pub mod args {
             )
     }
 
-    pub fn rpush() -> App<'static, 'static> {
+    pub fn rpush() -> App<'static> {
         SubCommand::with_name("rpush")
             .about("List.RPush: Store item at list end")
             .arg(
@@ -254,7 +254,7 @@ pub mod args {
             )
     }
 
-    pub fn rpushx() -> App<'static, 'static> {
+    pub fn rpushx() -> App<'static> {
         SubCommand::with_name("rpushx")
             .about("List.RPushX: Store item at list end, iff list exists")
             .arg(
