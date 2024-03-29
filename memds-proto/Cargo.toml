@@ -2,13 +2,13 @@
 name = "memds-proto"
 version = "0.2.0"
 authors = ["Jeff Garzik <jeff@bloq.com>"]
-edition = "2018"
+edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 futures = "0.1"
-grpcio = { version = "0.4", features = ["openssl"] }
+grpcio = { version = "0.5", features = ["openssl"] }
 protobuf = "~2"
 tokio = { version = "0.2", features = ["full"] }
 tokio-util = { version = "0.2", features = ["full"] }

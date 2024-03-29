@@ -111,7 +111,7 @@ fn main() {
         .build()
         .unwrap();
     server.start();
-    for &(ref host, port) in server.bind_addrs() {
+    for (host, port) in server.bind_addrs() {
         println!("listening on {}:{}", host, port);
     }
     let (tx, rx) = oneshot::channel();
