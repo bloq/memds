@@ -10,6 +10,6 @@ edition = "2021"
 memds-proto = { path = "../memds-proto" }
 clap = "3"
 futures = "0.1"
-grpcio = { version = "0.4", features = ["openssl"] }
+grpcio = { version = "0.5", features = ["openssl"] }
 protobuf = "~2"
 log = "0.4"
